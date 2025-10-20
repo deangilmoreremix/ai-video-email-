@@ -1,0 +1,8 @@
+{
+  "name": "Personalized AI Video Email",
+  "description": "Combine a personal video recording with stunning, AI-generated scenes. Record an intro, write a script, and create a unique video email in minutes.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
