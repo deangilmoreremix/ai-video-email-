@@ -67,19 +67,19 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
     };
 
     return (
-        <div className="bg-gray-800 p-6 rounded-lg space-y-4 max-w-3xl mx-auto w-full">
+        <div className="bg-gray-800 p-6 rounded-lg space-y-4 max-w-3xl mx-auto w-full" role="main" aria-label="Email Composer">
             <h2 className="text-2xl font-bold text-center">Your Video is Ready!</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="region" aria-label="Video Previews">
                 <div>
                     <h3 className="font-semibold mb-2">Your Personal Intro</h3>
-                    <video src={videoUrl} controls className="w-full rounded-lg bg-black aspect-video" />
+                    <video src={videoUrl} controls className="w-full rounded-lg bg-black aspect-video" aria-label="Your personal video introduction" />
                 </div>
                 <div>
                      <h3 className="font-semibold mb-2">AI Generated Scenes</h3>
-                     <div className="aspect-video w-full bg-black rounded-lg overflow-y-auto">
+                     <div className="aspect-video w-full bg-black rounded-lg overflow-y-auto" aria-label="AI generated scene carousel">
                         {aiSceneUrls.length > 0 ? (
-                            aiSceneUrls.map((url, i) => <img key={i} src={url} alt={`Scene ${i+1}`} className="w-full h-auto mb-2"/>)
+                            aiSceneUrls.map((url, i) => <img key={i} src={url} alt={`AI Scene ${i+1}`} className="w-full h-auto mb-2" role="img"/>)
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-400">No AI scenes generated.</div>
                         )}
@@ -87,19 +87,48 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
                 </div>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-gray-700">
+            <div className="space-y-4 pt-4 border-t border-gray-700" role="group" aria-label="Email Sending Options">
                 <h3 className="font-semibold text-lg">Send Your Video</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input type="email" placeholder="Recipient's Email" value={recipient} onChange={e => setRecipient(e.target.value)} className="bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"/>
-                    <input type="text" placeholder="Subject" value={subject} onChange={e => setSubject(e.target.value)} className="bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"/>
+                    <input 
+                        type="email" 
+                        placeholder="Recipient's Email" 
+                        value={recipient} 
+                        onChange={e => setRecipient(e.target.value)} 
+                        className="bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"
+                        aria-label="Recipient's Email Address"
+                    />
+                    <input 
+                        type="text" 
+                        placeholder="Subject" 
+                        value={subject} 
+                        onChange={e => setSubject(e.target.value)} 
+                        className="bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"
+                        aria-label="Email Subject"
+                    />
                 </div>
                 <div className="flex justify-between items-center gap-4">
-                    <button onClick={onBack} className="px-6 py-2 bg-gray-600 rounded-lg hover:bg-gray-500">Back to Editor</button>
+                    <button 
+                        onClick={onBack} 
+                        className="px-6 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                        aria-label="Back to video editor"
+                    >
+                        Back to Editor
+                    </button>
                     <div className="flex gap-2">
-                        <button onClick={handleCopyShareLink} className="p-3 bg-gray-700 rounded-lg hover:bg-gray-600" title="Copy Shareable Link (AI Scenes Only)">
+                        <button 
+                            onClick={handleCopyShareLink} 
+                            className="p-3 bg-gray-700 rounded-lg hover:bg-gray-600" 
+                            title="Copy Shareable Link (AI Scenes Only)"
+                            aria-label="Copy shareable link for AI scenes"
+                        >
                            <ShareIcon className="w-5 h-5"/>
                         </button>
-                        <button onClick={handleSendEmail} className="inline-flex items-center gap-2 px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400">
+                        <button 
+                            onClick={handleSendEmail} 
+                            className="inline-flex items-center gap-2 px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400"
+                            aria-label="Send email with video and AI scenes"
+                        >
                            <SendIcon className="w-5 h-5"/>
                            <span>Send Email</span>
                         </button>
@@ -109,7 +138,11 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
 
             {/* Copy Confirmation Toast */}
             {showCopyToast && (
-                <div className="fixed bottom-10 right-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                <div 
+                    className="fixed bottom-10 right-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
+                    role="status"
+                    aria-live="polite"
+                >
                     <CopyIcon className="w-5 h-5" />
                     Link copied to clipboard!
                 </div>

@@ -1,4 +1,3 @@
-// FIX: Implement the Header component.
 import React from 'react';
 import { VideoIcon } from './icons';
 
@@ -25,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ onNewProject }) => {
                     onClick={onNewProject}
                     className="px-4 py-2 text-sm bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
                     title="Start a new project"
+                    aria-label="Start a new project, clearing current work"
                 >
                     Start New
                 </button>

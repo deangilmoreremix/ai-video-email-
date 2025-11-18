@@ -1,11 +1,79 @@
-import { GoogleGenAI, Modality, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+import { GoogleGenAI, Modality, Type, GenerateContentResponse, FunctionDeclaration, LiveServerMessage } from "@google/genai";
 
-export type VisualStyle = 'Modern Tech' | 'Photorealistic' | 'Anime';
+declare const window: any;
+
+// A mutable reference to the GoogleGenAI instance.
+// This allows re-initialization if the API key selection changes.
+let aiInstance: GoogleGenAI | null = null;
+let lastSelectedApiKey: string | null = null; // Track the last API key used to prevent unnecessary re-initialization
+
+/**
+ * Provides a GoogleGenAI instance, ensuring API key selection for specific models.
+ * For Veo models, it will prompt the user to select an API key if not already selected.
+ * @param requireAistudioKeySelection If true, checks for `window.aistudio` API key selection.
+ *                                    This should only be true for models like Veo that require it.
+ * @returns A promise that resolves to a GoogleGenAI instance.
+ */
+export const getGoogleGenAIInstance = async (
+    requireAistudioKeySelection: boolean = false
+): Promise<GoogleGenAI> => {
+    // Check if the current environment's API_KEY has changed or if an instance hasn't been created yet.
+    // This allows for dynamic API key updates without full page reload.
+    const currentEnvApiKey = process.env.API_KEY || null;
+
+    if (requireAistudioKeySelection) {
+        if (!window.aistudio) {
+            console.warn("window.aistudio not available, cannot check for API key selection for Veo models.");
+            // Fallback to environment key or throw error if strictly required.
+            // For now, we'll proceed with the environment key if window.aistudio is absent.
+            if (!aiInstance || lastSelectedApiKey !== currentEnvApiKey) {
+                aiInstance = new GoogleGenAI({ apiKey: currentEnvApiKey! });
+                lastSelectedApiKey = currentEnvApiKey;
+            }
+            return aiInstance;
+        }
+
+        let hasKey = await window.aistudio.hasSelectedApiKey();
+        if (!hasKey) {
+            console.log("No API key selected. Opening key selection dialog...");
+            try {
+                // Open the key selection dialog. The user will interact with it.
+                await window.aistudio.openSelectKey();
+                // Optimistically assume key selection was successful.
+                hasKey = true;
+                // Since the key selection might have changed process.env.API_KEY, we re-evaluate.
+                const newEnvApiKey = process.env.API_KEY || null;
+                if (!aiInstance || lastSelectedApiKey !== newEnvApiKey) {
+                    aiInstance = new GoogleGenAI({ apiKey: newEnvApiKey! });
+                    lastSelectedApiKey = newEnvApiKey;
+                }
+                return aiInstance;
+            } catch (error: any) {
+                console.error("User cancelled or failed to select API key:", error);
+                // If API call fails later due to missing key, aistudio.openSelectKey() might need to be called again.
+                // For now, re-throw to indicate the feature cannot proceed without key.
+                throw new Error("API key selection is required to use this feature.");
+            }
+        }
+    }
+
+    // Default behavior for other models: use process.env.API_KEY.
+    // Re-initialize only if API key has changed or instance is null.
+    if (!aiInstance || lastSelectedApiKey !== currentEnvApiKey) {
+        if (!currentEnvApiKey) {
+            console.error("API_KEY is not set. Ensure process.env.API_KEY is configured.");
+            throw new Error("API_KEY is not configured.");
+        }
+        aiInstance = new GoogleGenAI({ apiKey: currentEnvApiKey });
+        lastSelectedApiKey = currentEnvApiKey;
+    }
+    return aiInstance;
+};
 
 // --- Scripting ---
 export const generateScriptFromPrompt = async (prompt: string): Promise<string> => {
+    const ai = await getGoogleGenAIInstance(false); // No aistudio key selection needed for this model
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: `Write a short, compelling video script based on the following prompt. The script should be concise and engaging, suitable for a short video message of 2-4 sentences. Prompt: "${prompt}"`,
@@ -17,6 +85,7 @@ export const generateScriptFromPrompt = async (prompt: string): Promise<string> 
 };
 
 export const getKeywordsFromScript = async (script: string): Promise<string[]> => {
+    const ai = await getGoogleGenAIInstance(false); // No aistudio key selection needed for this model
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: `Analyze the following script and identify the most important keywords or short phrases (2-3 words max). Return ONLY a JSON array of strings. Script: "${script}"`,
@@ -31,14 +100,17 @@ export const getKeywordsFromScript = async (script: string): Promise<string[]> =
     const jsonString = response.text.trim();
     try {
         return JSON.parse(jsonString);
-    } catch (e) {
+    } catch (e: any) {
         console.error("Failed to parse keywords JSON:", e);
         return [];
     }
 }
 
 // --- Visuals ---
+export type VisualStyle = 'Modern Tech' | 'Photorealistic' | 'Anime';
+
 export const generateVisualsForScript = async (script: string, style: VisualStyle): Promise<string[]> => {
+    const ai = await getGoogleGenAIInstance(false); // No aistudio key selection needed for this model
     const scenes = script.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const imagePromises: Promise<string>[] = [];
 
@@ -73,6 +145,7 @@ export const generateVisualsForScript = async (script: string, style: VisualStyl
 
 // --- Video Analysis ---
 export const generateTranscriptFromVideo = async (videoBlob: Blob): Promise<string> => {
+    const ai = await getGoogleGenAIInstance(false); // No aistudio key selection needed for this model
     const videoBase64 = await blobToDataURL(videoBlob);
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
@@ -87,7 +160,8 @@ export const generateTranscriptFromVideo = async (videoBlob: Blob): Promise<stri
 };
 
 export const analyzeTranscriptForQuality = async (transcript: string): Promise<{ score: number, justification: string }> => {
-     const response = await ai.models.generateContent({
+    const ai = await getGoogleGenAIInstance(false); // No aistudio key selection needed for this model
+    const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: `Act as a speech coach. Analyze the following transcript for clarity, confidence, and delivery (e.g., filler words, rambling). Provide a score out of 10 and a brief, one-sentence justification. Return ONLY a JSON object with "score" (number) and "justification" (string). Transcript: "${transcript}"`,
         config: {
@@ -104,7 +178,7 @@ export const analyzeTranscriptForQuality = async (transcript: string): Promise<{
     const jsonString = response.text.trim();
     try {
         return JSON.parse(jsonString);
-    } catch (e) {
+    } catch (e: any) {
         console.error("Failed to parse analysis JSON:", jsonString, e);
         // Fallback in case of parsing error
         return { score: 0, justification: "Could not analyze." };
@@ -128,8 +202,9 @@ export interface TimedTranscript {
 }
 
 export const getTranscriptWithTimestampsAndFillers = async (videoBlob: Blob): Promise<TimedTranscript> => {
-     const videoBase64 = await blobToDataURL(videoBlob);
-     const response = await ai.models.generateContent({
+    const ai = await getGoogleGenAIInstance(false); // No aistudio key selection needed for this model
+    const videoBase64 = await blobToDataURL(videoBlob);
+    const response = await ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: [{
             parts: [
@@ -138,8 +213,8 @@ export const getTranscriptWithTimestampsAndFillers = async (videoBlob: Blob): Pr
             ]
         }],
         config: {
-             responseMimeType: "application/json",
-             responseSchema: {
+            responseMimeType: "application/json",
+            responseSchema: {
                 type: Type.OBJECT,
                 properties: {
                     words: {
@@ -172,7 +247,7 @@ export const getTranscriptWithTimestampsAndFillers = async (videoBlob: Blob): Pr
     const jsonString = response.text.trim();
     try {
         return JSON.parse(jsonString);
-    } catch(e) {
+    } catch(e: any) {
         console.error("Failed to parse timed transcript:", jsonString, e);
         return { words: [], silences: [] };
     }
