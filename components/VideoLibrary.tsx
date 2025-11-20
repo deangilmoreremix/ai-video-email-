@@ -4,9 +4,10 @@ import { supabase, UserVideo } from '../lib/supabase';
 interface VideoLibraryProps {
   onClose: () => void;
   onSelectVideo?: (video: UserVideo) => void;
+  onEditVideo?: (video: UserVideo) => void;
 }
 
-export const VideoLibrary: React.FC<VideoLibraryProps> = ({ onClose, onSelectVideo }) => {
+export const VideoLibrary: React.FC<VideoLibraryProps> = ({ onClose, onSelectVideo, onEditVideo }) => {
   const [videos, setVideos] = useState<UserVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -167,6 +168,14 @@ export const VideoLibrary: React.FC<VideoLibraryProps> = ({ onClose, onSelectVid
                         className="flex-1 px-3 py-2 bg-yellow-500 text-black text-sm font-semibold rounded-lg hover:bg-yellow-400"
                       >
                         Use
+                      </button>
+                    )}
+                    {onEditVideo && (
+                      <button
+                        onClick={() => onEditVideo(video)}
+                        className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-500"
+                      >
+                        Edit
                       </button>
                     )}
                     <button

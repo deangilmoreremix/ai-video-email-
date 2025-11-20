@@ -6,6 +6,7 @@ import { VideoEditor } from './components/VideoEditor';
 import { EmailComposer } from './components/EmailComposer';
 import { Settings } from './components/Settings';
 import { VideoLibrary } from './components/VideoLibrary';
+import { UserVideo } from './lib/supabase';
 import { AuthModal } from './components/AuthModal';
 import { AIFeaturesPanel } from './components/AIFeaturesPanel';
 import { AdvancedAIPanel } from './components/AdvancedAIPanel';
@@ -50,6 +51,7 @@ const App: React.FC = () => {
     const [loadError, setLoadError] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [showVideoLibrary, setShowVideoLibrary] = useState(false);
+    const [editingFromLibrary, setEditingFromLibrary] = useState(false);
     const [showAuth, setShowAuth] = useState(false);
     const [presentationScore, setPresentationScore] = useState<number>();
     const [hasChapters, setHasChapters] = useState(false);
@@ -216,12 +218,42 @@ const App: React.FC = () => {
 
     const handleEditVideo = (take: Take) => {
         setSelectedTake(take);
+        setEditingFromLibrary(false);
         setAppState('editing');
+    };
+
+    const handleEditVideoFromLibrary = async (video: UserVideo) => {
+        try {
+            const response = await fetch(video.video_url);
+            const blob = await response.blob();
+
+            const fakeTake: Take = {
+                id: video.id,
+                blob: blob,
+                url: video.video_url,
+                transcript: video.transcript || null,
+                analysis: null,
+                status: 'complete'
+            };
+
+            setSelectedTake(fakeTake);
+            setEditingFromLibrary(true);
+            setShowVideoLibrary(false);
+            setAppState('editing');
+        } catch (error: any) {
+            handleGlobalError(`Failed to load video for editing: ${error.message}`);
+        }
     };
 
     const handleFinishEditing = (finalBlob: Blob) => {
         setEditedBlob(finalBlob);
-        setAppState('composer');
+        if (editingFromLibrary) {
+            setAppState('main');
+            setEditingFromLibrary(false);
+            handleGlobalError('Video edited successfully! You can now use it.');
+        } else {
+            setAppState('composer');
+        }
     };
     
     const handleGenerateScenes = async () => {
@@ -278,7 +310,16 @@ const App: React.FC = () => {
                     setAppState('main');
                     return null;
                 }
-                return <VideoEditor take={selectedTake} onFinishEditing={handleFinishEditing} onCancel={() => setAppState('main')} onError={handleGlobalError} />;
+                return <VideoEditor
+                    take={selectedTake}
+                    onFinishEditing={handleFinishEditing}
+                    onCancel={() => {
+                        setAppState('main');
+                        setEditingFromLibrary(false);
+                    }}
+                    onError={handleGlobalError}
+                    editingFromLibrary={editingFromLibrary}
+                />;
             case 'composer':
                  if (!selectedTake) {
                     setAppState('main');
@@ -357,7 +398,10 @@ const App: React.FC = () => {
                     {renderContent()}
                 </main>
                 {showSettings && <Settings onClose={() => setShowSettings(false)} />}
-                {showVideoLibrary && <VideoLibrary onClose={() => setShowVideoLibrary(false)} />}
+                {showVideoLibrary && <VideoLibrary
+                    onClose={() => setShowVideoLibrary(false)}
+                    onEditVideo={handleEditVideoFromLibrary}
+                />}
                 {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
                 <ProgressIndicator

@@ -2,18 +2,20 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppLibs } from '../contexts/AppContext';
 import { Take } from './VideoRecorder';
 import { getTranscriptWithTimestampsAndFillers, TimedTranscript } from '../services/geminiService';
-import { ScissorsIcon, MuteIcon, PlayIcon, TrashIcon } from './icons'; // Added TrashIcon
+import { ScissorsIcon, MuteIcon, PlayIcon, TrashIcon } from './icons';
+import { supabase } from '../lib/supabase';
 
 interface VideoEditorProps {
     take: Take;
     onFinishEditing: (editedBlob: Blob) => void;
     onCancel: () => void;
-    onError: (message: string) => void; // New prop for error handling
+    onError: (message: string) => void;
+    editingFromLibrary?: boolean;
 }
 
 type Cut = { id: string; start: number; end: number; type: 'filler' | 'silence' | 'manual'; text?: string };
 
-export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing, onCancel, onError }) => {
+export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing, onCancel, onError, editingFromLibrary = false }) => {
     const { ffmpeg, getGoogleGenAIInstance } = useAppLibs();
     const videoRef = useRef<HTMLVideoElement>(null);
     const waveformRef = useRef<HTMLCanvasElement>(null);
@@ -38,6 +40,48 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing,
     const audioBufferRef = useRef<AudioBuffer | null>(null);
     const isDraggingTrimStart = useRef(false);
     const isDraggingTrimEnd = useRef(false);
+
+    const saveEditedVideoToLibrary = async (videoBlob: Blob) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                throw new Error('User must be authenticated to save videos');
+            }
+
+            const fileName = `${Date.now()}_edited_${take.id}.${exportFormat === 'mp4' ? 'mp4' : 'gif'}`;
+            const filePath = `${user.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('videos')
+                .upload(filePath, videoBlob);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('videos')
+                .getPublicUrl(filePath);
+
+            const { error: updateError } = await supabase
+                .from('user_videos')
+                .update({
+                    video_url: publicUrl,
+                    file_size: videoBlob.size,
+                })
+                .eq('id', take.id);
+
+            if (updateError) {
+                await supabase.storage.from('videos').remove([filePath]);
+                throw updateError;
+            }
+
+            onError('Video saved to library successfully!');
+        } catch (error: any) {
+            console.error('Error saving edited video:', error);
+            onError(`Failed to save video: ${error.message}`);
+            throw error;
+        }
+    };
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -319,7 +363,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing,
         }
     };
     
-    const handleSave = async () => {
+    const handleSave = async (saveToLibrary: boolean = false) => {
         if (!ffmpeg) {
             console.error("FFmpeg not ready.");
             onError("Video editor is not fully loaded. Please wait.");
@@ -394,7 +438,13 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing,
 
                 await ffmpeg.exec(...ffmpegArgs);
                 const data = await ffmpeg.readFile('output.mp4') as Uint8Array;
-                onFinishEditing(new Blob([data.buffer], { type: 'video/mp4' }));
+                const finalBlob = new Blob([data.buffer], { type: 'video/mp4' });
+
+                if (saveToLibrary && editingFromLibrary) {
+                    await saveEditedVideoToLibrary(finalBlob);
+                }
+
+                onFinishEditing(finalBlob);
 
             } else { // GIF
                  const width = resolution === '720p' ? '480' : '320';
@@ -412,7 +462,13 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing,
                 ffmpegArgs.push(...mapArgs, '-f', 'gif', 'output.gif');
                  await ffmpeg.exec(...ffmpegArgs);
                  const data = await ffmpeg.readFile('output.gif') as Uint8Array;
-                 onFinishEditing(new Blob([data.buffer], { type: 'image/gif' }));
+                 const finalBlob = new Blob([data.buffer], { type: 'image/gif' });
+
+                 if (saveToLibrary && editingFromLibrary) {
+                     await saveEditedVideoToLibrary(finalBlob);
+                 }
+
+                 onFinishEditing(finalBlob);
             }
 
         } catch (e: any) {
@@ -558,8 +614,13 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing,
              )}
              <div className="flex justify-end gap-4 pt-4 border-t border-gray-700" role="group" aria-label="Editor actions">
                 <button onClick={onCancel} className="px-6 py-2 bg-gray-600 rounded-lg hover:bg-gray-500" aria-label="Go back to video recorder">Back</button>
-                <button onClick={handleSave} disabled={isSaving || !ffmpeg} className="px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 disabled:opacity-50" aria-label={isSaving ? 'Processing video' : 'Apply edits and export video'}>
-                    {isSaving ? 'Processing...' : 'Apply Edits & Export'}
+                {editingFromLibrary && (
+                    <button onClick={() => handleSave(true)} disabled={isSaving || !ffmpeg} className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-500 disabled:opacity-50" aria-label={isSaving ? 'Processing video' : 'Save to library'}>
+                        {isSaving ? 'Processing...' : 'Save to Library'}
+                    </button>
+                )}
+                <button onClick={() => handleSave(false)} disabled={isSaving || !ffmpeg} className="px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 disabled:opacity-50" aria-label={isSaving ? 'Processing video' : 'Apply edits and export video'}>
+                    {isSaving ? 'Processing...' : editingFromLibrary ? 'Apply Edits' : 'Apply Edits & Export'}
                 </button>
              </div>
         </div>
