@@ -19,9 +19,17 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onScriptGene
 
   const loadTemplates = async () => {
     setLoading(true);
-    const data = await getTemplates(category || undefined);
-    setTemplates(data);
-    setLoading(false);
+    try {
+      console.log('Loading templates, category:', category);
+      const data = await getTemplates(category || undefined);
+      console.log('Templates loaded:', data.length, 'templates');
+      setTemplates(data);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      setTemplates([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTemplateSelect = (template: VideoTemplate) => {
