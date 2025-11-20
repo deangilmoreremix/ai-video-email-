@@ -3,14 +3,17 @@ import { getGoogleGenAIInstance, blobToDataURL, handleGeminiError, retryWithBack
 import { supabase } from '../lib/supabase';
 
 // ============================================
-// 1. VEO 2 VIDEO BACKGROUND GENERATION
+// 1. VEO VIDEO GENERATION
 // ============================================
+
+export type VeoModel = 'veo-2' | 'veo-2-flash' | 'veo-2-gemini' | 'veo-003';
 
 export interface VeoGenerationRequest {
   prompt: string;
   duration: number;
   style: 'modern-tech' | 'cinematic' | 'abstract' | 'professional';
   aspectRatio?: '16:9' | '9:16' | '1:1';
+  model?: VeoModel;
 }
 
 export interface VeoGenerationResult {
@@ -35,6 +38,7 @@ export const generateBRollWithVeo = async (request: VeoGenerationRequest): Promi
 
       // Insert pending record
       const { data: userData } = await supabase.auth.getUser();
+      const veoModel = request.model || 'veo-2';
       const { data: bgRecord, error: insertError } = await supabase
         .from('veo_generated_backgrounds')
         .insert({
@@ -42,6 +46,7 @@ export const generateBRollWithVeo = async (request: VeoGenerationRequest): Promi
           prompt: fullPrompt,
           duration: request.duration,
           style: request.style,
+          veo_model: veoModel,
           status: 'processing'
         })
         .select()
@@ -49,9 +54,9 @@ export const generateBRollWithVeo = async (request: VeoGenerationRequest): Promi
 
       if (insertError) throw insertError;
 
-      // Call Veo 2 API for video generation
+      // Call Veo API for video generation
       const response = await ai.models.generateContent({
-        model: 'veo-2',
+        model: veoModel,
         contents: [{
           parts: [{ text: fullPrompt }]
         }],
@@ -67,7 +72,7 @@ export const generateBRollWithVeo = async (request: VeoGenerationRequest): Promi
       const videoUrl = response.candidates?.[0]?.content?.parts?.[0]?.videoUrl || '';
 
       if (!videoUrl) {
-        throw new Error('Veo 2 did not return a video URL. The model may not be available or the request may have failed.');
+        throw new Error(`${veoModel} did not return a video URL. The model may not be available or the request may have failed.`);
       }
 
       // Update record with video URL

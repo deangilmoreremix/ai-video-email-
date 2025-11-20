@@ -51,6 +51,7 @@ export const AdvancedAIPanel: React.FC<AdvancedAIPanelProps> = ({
   const [veoPrompt, setVeoPrompt] = useState('');
   const [veoStyle, setVeoStyle] = useState<'modern-tech' | 'cinematic' | 'abstract' | 'professional'>('modern-tech');
   const [veoDuration, setVeoDuration] = useState(5);
+  const [veoModel, setVeoModel] = useState<'veo-2' | 'veo-2-flash' | 'veo-2-gemini' | 'veo-003'>('veo-2');
   const [collaborationCode, setCollaborationCode] = useState('');
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [coachFeedback, setCoachFeedback] = useState<PresentationFeedback[]>([]);
@@ -161,7 +162,8 @@ export const AdvancedAIPanel: React.FC<AdvancedAIPanelProps> = ({
       const result = await generateBRollWithVeo({
         prompt: veoPrompt,
         duration: veoDuration,
-        style: veoStyle
+        style: veoStyle,
+        model: veoModel
       });
       onError(`B-roll generated! Video ID: ${result.id}`);
     } catch (err: any) {
@@ -306,7 +308,7 @@ export const AdvancedAIPanel: React.FC<AdvancedAIPanelProps> = ({
       {/* Veo B-Roll Form */}
       {activeFeature === 'veo-form' && (
         <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-3">
-          <h3 className="font-semibold text-white">Generate B-Roll with Veo 2</h3>
+          <h3 className="font-semibold text-white">Generate B-Roll with Veo</h3>
           <textarea
             value={veoPrompt}
             onChange={(e) => setVeoPrompt(e.target.value)}
@@ -315,16 +317,16 @@ export const AdvancedAIPanel: React.FC<AdvancedAIPanelProps> = ({
           />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm text-gray-400">Style</label>
+              <label className="text-sm text-gray-400">Model</label>
               <select
-                value={veoStyle}
-                onChange={(e) => setVeoStyle(e.target.value as any)}
-                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white"
+                value={veoModel}
+                onChange={(e) => setVeoModel(e.target.value as any)}
+                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white text-sm"
               >
-                <option value="modern-tech">Modern Tech</option>
-                <option value="cinematic">Cinematic</option>
-                <option value="abstract">Abstract</option>
-                <option value="professional">Professional</option>
+                <option value="veo-2">Veo 2 (Highest Quality)</option>
+                <option value="veo-2-flash">Veo 2 Flash (Faster)</option>
+                <option value="veo-2-gemini">Veo 2 Gemini (Balanced)</option>
+                <option value="veo-003">Veo 003 (Latest)</option>
               </select>
             </div>
             <div>
@@ -339,12 +341,34 @@ export const AdvancedAIPanel: React.FC<AdvancedAIPanelProps> = ({
               />
             </div>
           </div>
+          <div>
+            <label className="text-sm text-gray-400">Style</label>
+            <select
+              value={veoStyle}
+              onChange={(e) => setVeoStyle(e.target.value as any)}
+              className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white"
+            >
+              <option value="modern-tech">Modern Tech</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="abstract">Abstract</option>
+              <option value="professional">Professional</option>
+            </select>
+          </div>
+          <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 text-xs text-gray-400">
+            <p className="font-semibold text-gray-300 mb-2">Model Comparison:</p>
+            <ul className="space-y-1">
+              <li>• <span className="text-white">Veo 2</span> - Best quality, realistic, detailed</li>
+              <li>• <span className="text-white">Veo 2 Flash</span> - 3x faster generation</li>
+              <li>• <span className="text-white">Veo 2 Gemini</span> - Optimized for text prompts</li>
+              <li>• <span className="text-white">Veo 003</span> - Latest experimental version</li>
+            </ul>
+          </div>
           <button
             onClick={handleGenerateVeoBRoll}
             disabled={loading}
-            className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 font-semibold"
           >
-            Generate B-Roll
+            Generate B-Roll with {veoModel}
           </button>
         </div>
       )}

@@ -116,18 +116,42 @@ import { ThumbnailSelector } from './components/ThumbnailSelector';
 
 ---
 
-## 🎬 Veo 2 Video Background Generation
+## 🎬 Veo Video Generation
 
-### What is Veo 2?
-Veo 2 is Google's cutting-edge video generation model that creates professional B-roll footage from text prompts.
+### Available Models
+Google offers multiple Veo models optimized for different use cases:
+
+#### 1. **Veo 2** (Highest Quality)
+- Best photorealistic quality
+- Most detailed and realistic outputs
+- Ideal for professional productions
+- Longer generation time
+
+#### 2. **Veo 2 Flash** (3x Faster)
+- 3x faster than standard Veo 2
+- Good quality with quick turnaround
+- Best for rapid iteration
+- Ideal for previews and drafts
+
+#### 3. **Veo 2 Gemini** (Balanced)
+- Optimized for text prompt understanding
+- Better at complex scene descriptions
+- Balanced quality and speed
+- Excellent for narrative content
+
+#### 4. **Veo 003** (Latest Experimental)
+- Newest model version
+- Cutting-edge features
+- May have experimental capabilities
+- For early adopters
 
 ### Capabilities
 - **Duration**: Generate videos up to 30 seconds
-- **Quality**: 1080p, 4K capable
+- **Quality**: 1080p, 4K capable (model dependent)
 - **Styles**: Multiple cinematic styles
 - **Aspect Ratios**: 16:9, 9:16, 1:1
 
-### How to Use Veo 2
+### How to Use Veo Models
 ```typescript
 import { generateBRollWithVeo, VeoGenerationRequest } from './services/advancedAIServices';
 
@@ -135,12 +159,35 @@ const request: VeoGenerationRequest = {
     prompt: 'Modern office with people collaborating on laptops',
     duration: 10, // seconds
     style: 'cinematic',
-    aspectRatio: '16:9'
+    aspectRatio: '16:9',
+    model: 'veo-2-flash' // Choose: veo-2, veo-2-flash, veo-2-gemini, veo-003
 };
 
 const result = await generateBRollWithVeo(request);
 console.log('Generated video:', result.videoUrl);
 ```
+
+### Model Selection Guide
+
+**Use Veo 2 when:**
+- Final production quality needed
+- Budget allows for longer generation
+- Maximum realism required
+
+**Use Veo 2 Flash when:**
+- Quick iterations needed
+- Preview/draft quality acceptable
+- Time is critical
+
+**Use Veo 2 Gemini when:**
+- Complex text prompts
+- Narrative-heavy scenes
+- Need balance of quality and speed
+
+**Use Veo 003 when:**
+- Testing latest features
+- Experimental projects
+- Willing to handle edge cases
 
 ### Available Styles
 1. **modern-tech**: Sleek technology visualization
