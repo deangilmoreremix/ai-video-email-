@@ -138,86 +138,15 @@ const App: React.FC = () => {
                 return; // Stop initialization if API key is missing
             }
 
-            // A more robust polling function that waits for a condition to be met
-            const waitFor = <T,>(
-                checkFn: () => T | undefined | null,
-                errorMessage: string,
-                timeout = 20000
-            ): Promise<T> => {
-                return new Promise((resolve, reject) => {
-                    const interval = 100;
-                    let elapsedTime = 0;
-                    const intervalId = setInterval(() => {
-                        const result = checkFn();
-                        if (result) {
-                            clearInterval(intervalId);
-                            resolve(result);
-                        } else {
-                            elapsedTime += interval;
-                            if (elapsedTime >= timeout) {
-                                clearInterval(intervalId);
-                                reject(new Error(errorMessage));
-                            }
-                        }
-                    }, interval);
-                });
+            // Initialize with basic context - libraries will be loaded on-demand
+            const libs = {
+                ffmpeg: null,
+                mediaPipeEffects: null,
+                getGoogleGenAIInstance: getGoogleGenAIInstance,
             };
-
-            try {
-                // Wait for the specific MediaPipe and FFmpeg classes to be ready globally
-                const [FilesetResolver, ImageSegmenter, FaceLandmarker, HandLandmarker, FFmpegClass] = await Promise.all([
-                    waitFor(() => window.FilesetResolver, "Timed out waiting for MediaPipe FilesetResolver. Check network or ad-blockers."),
-                    waitFor(() => window.ImageSegmenter, "Timed out waiting for MediaPipe ImageSegmenter. Check network or ad-blockers."),
-                    waitFor(() => window.FaceLandmarker, "Timed out waiting for MediaPipe FaceLandmarker. Check network or ad-blockers."),
-                    waitFor(() => window.HandLandmarker, "Timed out waiting for MediaPipe HandLandmarker. Check network or ad-blockers."),
-                    waitFor(() => window.FFmpeg?.FFmpeg, "Timed out waiting for FFmpeg library. Check network or ad-blockers.")
-                ]);
-
-                const vision = await FilesetResolver.forVisionTasks(
-                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
-                );
-
-                const segmenterPromise = ImageSegmenter.createFromOptions(vision, {
-                    baseOptions: { modelAssetPath: `https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_multiclass_256x256/float16/1/selfie_multiclass_256x256.tflite` },
-                    runningMode: 'VIDEO',
-                    outputCategoryMask: true,
-                });
-
-                const faceMeshPromise = FaceLandmarker.createFromOptions(vision, {
-                    baseOptions: { modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.tflite` },
-                    runningMode: 'VIDEO',
-                });
-
-                const handLandmarkerPromise = HandLandmarker.createFromOptions(vision, {
-                    baseOptions: { modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.tflite`, delegate: "GPU" },
-                    runningMode: 'VIDEO',
-                    numHands: 1,
-                });
-                
-                const ffmpeg = new FFmpegClass();
-                const ffmpegLoadPromise = ffmpeg.load();
-                
-                // Await all initializations
-                const [segmenter, faceMesh, handLandmarker, _] = await Promise.all([
-                    segmenterPromise,
-                    faceMeshPromise,
-                    handLandmarkerPromise,
-                    ffmpegLoadPromise
-                ]);
-
-                const libs = {
-                    ffmpeg,
-                    mediaPipeEffects: { segmenter, faceMesh, handLandmarker },
-                    getGoogleGenAIInstance: getGoogleGenAIInstance, // Provide the function directly
-                };
-                setLibraries(libs);
-                librariesRef.current = libs;
-                setLibrariesReady(true);
-
-            } catch (error: any) {
-                console.error("Initialization failed:", error);
-                setLoadError(error.message || "Failed to initialize core components. Please check your internet connection and refresh the page.");
-            }
+            setLibraries(libs);
+            librariesRef.current = libs;
+            setLibrariesReady(true);
         };
 
         init();
