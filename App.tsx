@@ -7,6 +7,7 @@ import { EmailComposer } from './components/EmailComposer';
 import { Settings } from './components/Settings';
 import { VideoLibrary } from './components/VideoLibrary';
 import { AuthModal } from './components/AuthModal';
+import { AIFeaturesPanel } from './components/AIFeaturesPanel';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { AppContext, AppContextType } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -271,26 +272,37 @@ const App: React.FC = () => {
             case 'main':
             default:
                 return (
-                     <div className="w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <ScriptEditor 
-                            script={script}
-                            onScriptChange={setScript}
-                            visualStyle={visualStyle}
-                            setVisualStyle={setVisualStyle}
-                            onSubmit={handleGenerateScenes}
-                            isSubmitting={isLoading}
-                            disabled={isLoading}
-                            onError={handleGlobalError}
-                        />
-                        <VideoRecorder 
-                            script={script}
-                            takes={takes}
-                            setTakes={setTakes}
-                            onSelectTake={handleSelectTake}
-                            onEditTake={handleEditVideo}
-                            selectedTakeId={selectedTake?.id}
-                            onError={handleGlobalError}
-                        />
+                    <div className="w-full max-w-7xl mx-auto space-y-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <ScriptEditor
+                                script={script}
+                                onScriptChange={setScript}
+                                visualStyle={visualStyle}
+                                setVisualStyle={setVisualStyle}
+                                onSubmit={handleGenerateScenes}
+                                isSubmitting={isLoading}
+                                disabled={isLoading}
+                                onError={handleGlobalError}
+                            />
+                            <VideoRecorder
+                                script={script}
+                                takes={takes}
+                                setTakes={setTakes}
+                                onSelectTake={handleSelectTake}
+                                onEditTake={handleEditVideo}
+                                selectedTakeId={selectedTake?.id}
+                                onError={handleGlobalError}
+                            />
+                        </div>
+                        {(script || selectedTake) && (
+                            <AIFeaturesPanel
+                                script={script}
+                                onScriptUpdate={setScript}
+                                videoBlob={selectedTake?.blob}
+                                aiScenes={aiScenes}
+                                onScenesUpdate={setAiScenes}
+                            />
+                        )}
                     </div>
                 );
         }

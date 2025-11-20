@@ -3,6 +3,8 @@ import { SendIcon, ShareIcon, CopyIcon } from './icons';
 import { supabase } from '../lib/supabase';
 import { uploadVideo, canUploadVideo, MAX_VIDEOS_PER_USER } from '../services/videoStorage';
 import { triggerEmailSentEvent } from '../services/zapierWebhook';
+import { AIEmailEnhancer } from './AIEmailEnhancer';
+import { PersonalizedEmail } from '../services/geminiService';
 
 interface EmailComposerProps {
     personalVideoBlob: Blob;
@@ -21,6 +23,7 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [error, setError] = useState<string | null>(null);
     const [videoSaved, setVideoSaved] = useState(false);
+    const [personalizedContent, setPersonalizedContent] = useState<PersonalizedEmail | null>(null);
 
     useEffect(() => {
         const url = URL.createObjectURL(personalVideoBlob);
@@ -219,20 +222,38 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
                 </div>
 
                 <h3 className="font-semibold text-lg pt-4">Send Your Video</h3>
+
+                <AIEmailEnhancer
+                    script={script}
+                    onSubjectSelect={(newSubject) => setSubject(newSubject)}
+                    onPersonalizedContentGenerate={(content) => setPersonalizedContent(content)}
+                />
+
+                {personalizedContent && (
+                    <div className="bg-green-900/30 border border-green-700 rounded-lg p-4 space-y-2">
+                        <p className="text-xs font-semibold text-green-400">AI-Generated Personalized Content:</p>
+                        <div className="text-sm text-gray-300 space-y-1">
+                            <p><strong>Greeting:</strong> {personalizedContent.greeting}</p>
+                            <p><strong>Body:</strong> {personalizedContent.body}</p>
+                            <p><strong>Call to Action:</strong> {personalizedContent.callToAction}</p>
+                        </div>
+                    </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input 
-                        type="email" 
-                        placeholder="Recipient's Email" 
-                        value={recipient} 
-                        onChange={e => setRecipient(e.target.value)} 
+                    <input
+                        type="email"
+                        placeholder="Recipient's Email"
+                        value={recipient}
+                        onChange={e => setRecipient(e.target.value)}
                         className="bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"
                         aria-label="Recipient's Email Address"
                     />
-                    <input 
-                        type="text" 
-                        placeholder="Subject" 
-                        value={subject} 
-                        onChange={e => setSubject(e.target.value)} 
+                    <input
+                        type="text"
+                        placeholder="Subject"
+                        value={subject}
+                        onChange={e => setSubject(e.target.value)}
                         className="bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"
                         aria-label="Email Subject"
                     />
