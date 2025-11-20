@@ -28,15 +28,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
     const [loadingEngagement, setLoadingEngagement] = useState(false);
     // Removed assistantError, will use global onError
     
-    useEffect(() => {
-        if (script.trim() && script.split(' ').length >= 10) {
-            const debounce = setTimeout(() => {
-                analyzeSEO();
-                analyzeEngagement();
-            }, 1000);
-            return () => clearTimeout(debounce);
-        }
-    }, [script]);
+    // Removed auto-analysis to prevent errors - users click buttons instead
 
     const analyzeSEO = async () => {
         if (!script.trim()) return;
@@ -168,77 +160,123 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
                 />
 
                 {/* SEO Title Suggestion */}
-                {seoMetadata && (
-                    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="text-yellow-400">💡</span>
-                            <h4 className="text-sm font-semibold text-gray-300">Suggested Title</h4>
-                        </div>
-                        <p className="text-white mb-2">{seoMetadata.optimizedTitle}</p>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => navigator.clipboard.writeText(seoMetadata.optimizedTitle)}
-                                className="text-xs px-3 py-1 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
-                            >
-                                Copy Title
-                            </button>
+                {script.trim() && script.split(' ').length >= 20 && (
+                    <>
+                        {!seoMetadata && !loadingSEO && (
                             <button
                                 onClick={analyzeSEO}
-                                className="text-xs px-3 py-1 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+                                disabled={disabled}
+                                className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors disabled:opacity-50 text-sm"
                             >
-                                Regenerate
+                                🎯 Generate SEO Title & Keywords
                             </button>
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-gray-700">
-                            <p className="text-xs text-gray-400 mb-2">Keywords: {seoMetadata.keywords.join(', ')}</p>
-                            <p className="text-xs text-gray-400">Hashtags: {seoMetadata.suggestedHashtags.join(' ')}</p>
-                        </div>
-                    </div>
+                        )}
+                        {loadingSEO && (
+                            <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 flex items-center justify-center">
+                                <div className="w-5 h-5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                <span className="text-sm text-gray-400">Generating SEO metadata...</span>
+                            </div>
+                        )}
+                        {seoMetadata && (
+                            <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-yellow-400">💡</span>
+                                    <h4 className="text-sm font-semibold text-gray-300">Suggested Title</h4>
+                                </div>
+                                <p className="text-white mb-2">{seoMetadata.optimizedTitle}</p>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => navigator.clipboard.writeText(seoMetadata.optimizedTitle)}
+                                        className="text-xs px-3 py-1 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+                                    >
+                                        Copy Title
+                                    </button>
+                                    <button
+                                        onClick={analyzeSEO}
+                                        className="text-xs px-3 py-1 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+                                    >
+                                        Regenerate
+                                    </button>
+                                </div>
+                                <div className="mt-3 pt-3 border-t border-gray-700">
+                                    <p className="text-xs text-gray-400 mb-2">Keywords: {seoMetadata.keywords.join(', ')}</p>
+                                    <p className="text-xs text-gray-400">Hashtags: {seoMetadata.suggestedHashtags.join(' ')}</p>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* Engagement Preview */}
-                {engagementPreview && (
-                    <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
-                        <h4 className="text-sm font-semibold text-gray-300 mb-3">Script Quality Meter</h4>
-                        <div className="mb-3">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs text-gray-400">Engagement Score</span>
-                                <span className="text-sm font-bold text-white">{engagementPreview.score}/100</span>
+                {script.trim() && script.split(' ').length >= 20 && (
+                    <>
+                        {!engagementPreview && !loadingEngagement && (
+                            <button
+                                onClick={analyzeEngagement}
+                                disabled={disabled}
+                                className="w-full py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-500 transition-colors disabled:opacity-50 text-sm"
+                            >
+                                📊 Predict Engagement Score
+                            </button>
+                        )}
+                        {loadingEngagement && (
+                            <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4 flex items-center justify-center">
+                                <div className="w-5 h-5 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                <span className="text-sm text-gray-400">Analyzing engagement...</span>
                             </div>
-                            <div className="w-full bg-gray-700 rounded-full h-2">
-                                <div
-                                    className={`h-2 rounded-full transition-all ${
-                                        engagementPreview.score >= 80
-                                            ? 'bg-green-500'
-                                            : engagementPreview.score >= 60
-                                            ? 'bg-yellow-500'
-                                            : 'bg-red-500'
-                                    }`}
-                                    style={{ width: `${engagementPreview.score}%` }}
-                                />
+                        )}
+                        {engagementPreview && (
+                            <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-4">
+                                <div className="flex justify-between items-center mb-3">
+                                    <h4 className="text-sm font-semibold text-gray-300">Script Quality Meter</h4>
+                                    <button
+                                        onClick={analyzeEngagement}
+                                        className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded hover:bg-gray-600 transition-colors"
+                                    >
+                                        Refresh
+                                    </button>
+                                </div>
+                                <div className="mb-3">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-xs text-gray-400">Engagement Score</span>
+                                        <span className="text-sm font-bold text-white">{engagementPreview.score}/100</span>
+                                    </div>
+                                    <div className="w-full bg-gray-700 rounded-full h-2">
+                                        <div
+                                            className={`h-2 rounded-full transition-all ${
+                                                engagementPreview.score >= 80
+                                                    ? 'bg-green-500'
+                                                    : engagementPreview.score >= 60
+                                                    ? 'bg-yellow-500'
+                                                    : 'bg-red-500'
+                                            }`}
+                                            style={{ width: `${engagementPreview.score}%` }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1 text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <span>{engagementPreview.hasHook ? '✓' : '⚠️'}</span>
+                                        <span className="text-gray-400">
+                                            {engagementPreview.hasHook ? 'Strong opening hook' : 'Consider adding opening hook'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span>{engagementPreview.hasCTA ? '✓' : '⚠️'}</span>
+                                        <span className="text-gray-400">
+                                            {engagementPreview.hasCTA ? 'Clear call-to-action' : 'Consider adding CTA at end'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span>✓</span>
+                                        <span className="text-gray-400">
+                                            Good pacing ({engagementPreview.pacingWordsPerMinute} words/min)
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="space-y-1 text-xs">
-                            <div className="flex items-center gap-2">
-                                <span>{engagementPreview.hasHook ? '✓' : '⚠️'}</span>
-                                <span className="text-gray-400">
-                                    {engagementPreview.hasHook ? 'Strong opening hook' : 'Consider adding opening hook'}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span>{engagementPreview.hasCTA ? '✓' : '⚠️'}</span>
-                                <span className="text-gray-400">
-                                    {engagementPreview.hasCTA ? 'Clear call-to-action' : 'Consider adding CTA at end'}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span>✓</span>
-                                <span className="text-gray-400">
-                                    Good pacing ({engagementPreview.pacingWordsPerMinute} words/min)
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                        )}
+                    </>
                 )}
                 <div className="space-y-2">
                     <label id="visual-style-label" className="block text-sm font-medium text-gray-400 text-center">2. Choose Visual Style</label>
