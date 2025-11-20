@@ -110,36 +110,42 @@ export const getKeywordsFromScript = async (script: string): Promise<string[]> =
 export type VisualStyle = 'Modern Tech' | 'Photorealistic' | 'Anime';
 
 export const generateVisualsForScript = async (script: string, style: VisualStyle): Promise<string[]> => {
-    const ai = await getGoogleGenAIInstance(false); // No aistudio key selection needed for this model
-    const scenes = script.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const imagePromises: Promise<string>[] = [];
+    return retryWithBackoff(async () => {
+        try {
+            const ai = await getGoogleGenAIInstance(false);
+            const scenes = script.split(/[.!?]+/).filter(s => s.trim().length > 0);
+            const imagePromises: Promise<string>[] = [];
 
-    const stylePrompt = {
-        'Modern Tech': 'modern tech art style, clean, abstract, glowing data visualizations',
-        'Photorealistic': 'photorealistic, cinematic lighting, 8k, sharp focus',
-        'Anime': 'anime art style, vibrant colors, detailed background, dynamic'
-    }[style];
+            const stylePrompt = {
+                'Modern Tech': 'modern tech art style, clean, abstract, glowing data visualizations',
+                'Photorealistic': 'photorealistic, cinematic lighting, 8k, sharp focus',
+                'Anime': 'anime art style, vibrant colors, detailed background, dynamic'
+            }[style];
 
-    for (const scene of scenes) {
-        const promise = ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: {
-                parts: [{ text: `Generate a visually stunning image in a ${stylePrompt}. Scene: "${scene}"` }],
-            },
-            config: {
-                responseModalities: [Modality.IMAGE],
-            },
-        }).then(response => {
-            for (const part of response.candidates[0].content.parts) {
-                if (part.inlineData) {
-                    return `data:image/png;base64,${part.inlineData.data}`;
-                }
+            for (const scene of scenes) {
+                const promise = ai.models.generateContent({
+                    model: 'gemini-2.5-flash-image',
+                    contents: {
+                        parts: [{ text: `Generate a visually stunning image in a ${stylePrompt}. Scene: "${scene}"` }],
+                    },
+                    config: {
+                        responseModalities: [Modality.IMAGE],
+                    },
+                }).then(response => {
+                    for (const part of response.candidates[0].content.parts) {
+                        if (part.inlineData) {
+                            return `data:image/png;base64,${part.inlineData.data}`;
+                        }
+                    }
+                    throw new Error('Image data not found in response');
+                });
+                imagePromises.push(promise);
             }
-            throw new Error('Image data not found in response');
-        });
-        imagePromises.push(promise);
-    }
-    return Promise.all(imagePromises);
+            return Promise.all(imagePromises);
+        } catch (error) {
+            return handleGeminiError(error);
+        }
+    });
 };
 
 
@@ -486,6 +492,87 @@ export const generateClosedCaptions = async (videoBlob: Blob): Promise<CaptionSe
         }
     });
     return JSON.parse(response.text.trim());
+};
+
+// --- Error Handling ---
+
+export class GeminiAPIError extends Error {
+    constructor(
+        message: string,
+        public code?: string,
+        public statusCode?: number,
+        public retryAfter?: number
+    ) {
+        super(message);
+        this.name = 'GeminiAPIError';
+    }
+}
+
+export const handleGeminiError = (error: any): never => {
+    if (error.message?.includes('quota')) {
+        throw new GeminiAPIError(
+            'API quota exceeded. Please try again later or check your Gemini API usage limits at https://aistudio.google.com/apikey',
+            'QUOTA_EXCEEDED',
+            429
+        );
+    }
+
+    if (error.message?.includes('429') || error.statusCode === 429) {
+        throw new GeminiAPIError(
+            'Too many requests. Please wait a moment before trying again.',
+            'RATE_LIMITED',
+            429,
+            60
+        );
+    }
+
+    if (error.message?.includes('401') || error.message?.includes('API key')) {
+        throw new GeminiAPIError(
+            'Invalid API key. Please check your Gemini API key configuration.',
+            'INVALID_API_KEY',
+            401
+        );
+    }
+
+    if (error.message?.includes('403')) {
+        throw new GeminiAPIError(
+            'Access forbidden. Your API key may not have permission for this operation.',
+            'FORBIDDEN',
+            403
+        );
+    }
+
+    throw new GeminiAPIError(
+        error.message || 'An unknown error occurred with the Gemini API',
+        'UNKNOWN_ERROR'
+    );
+};
+
+export const retryWithBackoff = async <T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    initialDelay: number = 1000
+): Promise<T> => {
+    let lastError: any;
+
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            return await fn();
+        } catch (error: any) {
+            lastError = error;
+
+            if (error.code === 'QUOTA_EXCEEDED' || error.code === 'INVALID_API_KEY' || error.code === 'FORBIDDEN') {
+                throw error;
+            }
+
+            if (i < maxRetries - 1) {
+                const delay = initialDelay * Math.pow(2, i);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+
+    throw lastError;
 };
 
 // --- Utility Functions ---

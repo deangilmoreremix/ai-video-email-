@@ -51,11 +51,21 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     const [isTeleprompterVisible, setIsTeleprompterVisible] = useState(false);
     const [teleprompterSpeed, setTeleprompterSpeed] = useState(1);
     const [teleprompterFontSize, setTeleprompterFontSize] = useState(24);
-    const [teleprompterFont, setTeleprompterFont] = useState('Arial'); // Default font
-    const [teleprompterTextColor, setTeleprompterTextColor] = useState('#FFFFFF'); // Default text color
+    const [teleprompterFont, setTeleprompterFont] = useState('Arial');
+    const [teleprompterTextColor, setTeleprompterTextColor] = useState('#FFFFFF');
     const [teleprompterBgColor, setTeleprompterBgColor] = useState('rgba(0, 0, 0, 0.5)');
-    const [teleprompterLineHeight, setTeleprompterLineHeight] = useState(1.2); // Default line height multiplier
-    const [teleprompterTextAlign, setTeleprompterTextAlign] = useState<'left' | 'center' | 'right'>('center'); // Default alignment
+    const [teleprompterLineHeight, setTeleprompterLineHeight] = useState(1.2);
+    const [teleprompterTextAlign, setTeleprompterTextAlign] = useState<'left' | 'center' | 'right'>('center');
+
+    const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+    const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
+    const [selectedCameraId, setSelectedCameraId] = useState<string>('');
+    const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string>('');
+    const [showDeviceSettings, setShowDeviceSettings] = useState(false);
+    const [isInitializingDevices, setIsInitializingDevices] = useState(false);
+    const [audioLevel, setAudioLevel] = useState(0);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const analyserRef = useRef<AnalyserNode | null>(null);
 
     const [isAiPacing, setIsAiPacing] = useState(false);
     const [highlightedKeywords, setHighlightedKeywords] = useState<string[]>([]);
@@ -399,28 +409,167 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
         teleprompterLineHeight, teleprompterTextAlign // Added new teleprompter states
     ]);
 
-    const startCamera = async () => {
+    const enumerateDevices = async () => {
         try {
-            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true });
+            await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const cameras = devices.filter(d => d.kind === 'videoinput');
+            const microphones = devices.filter(d => d.kind === 'audioinput');
+
+            setAvailableCameras(cameras);
+            setAvailableMicrophones(microphones);
+
+            const savedCameraId = localStorage.getItem('selectedCameraId');
+            const savedMicrophoneId = localStorage.getItem('selectedMicrophoneId');
+
+            if (savedCameraId && cameras.some(c => c.deviceId === savedCameraId)) {
+                setSelectedCameraId(savedCameraId);
+            } else if (cameras.length > 0) {
+                setSelectedCameraId(cameras[0].deviceId);
+            }
+
+            if (savedMicrophoneId && microphones.some(m => m.deviceId === savedMicrophoneId)) {
+                setSelectedMicrophoneId(savedMicrophoneId);
+            } else if (microphones.length > 0) {
+                setSelectedMicrophoneId(microphones[0].deviceId);
+            }
+        } catch (err: any) {
+            console.error("Error enumerating devices:", err);
+            onError("Failed to access media devices. Please grant camera and microphone permissions.");
+        }
+    };
+
+    const setupAudioLevelMonitoring = (mediaStream: MediaStream) => {
+        try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const analyser = audioContext.createAnalyser();
+            const source = audioContext.createMediaStreamSource(mediaStream);
+
+            analyser.fftSize = 256;
+            source.connect(analyser);
+
+            audioContextRef.current = audioContext;
+            analyserRef.current = analyser;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            const updateAudioLevel = () => {
+                if (!analyserRef.current) return;
+                analyserRef.current.getByteFrequencyData(dataArray);
+                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                setAudioLevel(Math.min(100, (average / 255) * 200));
+                requestAnimationFrame(updateAudioLevel);
+            };
+
+            updateAudioLevel();
+        } catch (err) {
+            console.error("Error setting up audio monitoring:", err);
+        }
+    };
+
+    const startCamera = async (cameraId?: string, microphoneId?: string) => {
+        setIsInitializingDevices(true);
+        try {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            const constraints: MediaStreamConstraints = {
+                video: cameraId ? { deviceId: { exact: cameraId }, width: 1280, height: 720 } : { width: 1280, height: 720 },
+                audio: microphoneId ? { deviceId: { exact: microphoneId } } : true
+            };
+
+            const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
             setStream(mediaStream);
+            setupAudioLevelMonitoring(mediaStream);
+
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
                 videoRef.current.onloadedmetadata = () => {
                     if (videoRef.current) {
-                         videoRef.current.play();
-                         if(canvasRef.current) {
+                        videoRef.current.play();
+                        if(canvasRef.current) {
                             canvasRef.current.width = videoRef.current.videoWidth;
                             canvasRef.current.height = videoRef.current.videoHeight;
-                         }
-                         animationFrameRef.current = requestAnimationFrame(processFrame);
+
+                            if (script && isTeleprompterVisible) {
+                                setTimeout(() => {
+                                    precomputeTeleprompterLines();
+                                }, 100);
+                            }
+                        }
+                        animationFrameRef.current = requestAnimationFrame(processFrame);
                     }
                 };
             }
         } catch (err: any) {
             console.error("Error accessing camera:", err);
-            // Provide user feedback on camera access failure
-            onError("Failed to access camera. Please ensure camera permissions are granted and no other application is using it.");
+            let errorMessage = "Failed to access camera. ";
+
+            if (err.name === 'NotAllowedError') {
+                errorMessage += "Please grant camera and microphone permissions.";
+            } else if (err.name === 'NotFoundError') {
+                errorMessage += "No camera or microphone found.";
+            } else if (err.name === 'NotReadableError') {
+                errorMessage += "Camera or microphone is already in use by another application.";
+            } else if (err.name === 'OverconstrainedError') {
+                errorMessage += "The selected device doesn't meet the requirements.";
+                const failedCameraId = localStorage.getItem('selectedCameraId');
+                const failedMicId = localStorage.getItem('selectedMicrophoneId');
+                if (failedCameraId || failedMicId) {
+                    localStorage.removeItem('selectedCameraId');
+                    localStorage.removeItem('selectedMicrophoneId');
+                    errorMessage += " Trying default devices...";
+                    setTimeout(() => startCamera(), 1000);
+                    return;
+                }
+            } else {
+                errorMessage += err.message || "Unknown error occurred.";
+            }
+
+            onError(errorMessage);
+        } finally {
+            setIsInitializingDevices(false);
         }
+    };
+
+    const precomputeTeleprompterLines = () => {
+        if (!canvasRef.current || !script) {
+            precomputedLinesRef.current = [];
+            return;
+        }
+        const ctx = canvasRef.current.getContext('2d');
+        if (!ctx) return;
+
+        ctx.font = `${teleprompterFontSize}px ${teleprompterFont}`;
+        const maxWidth = ctx.canvas.width - 140;
+        const words = script.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
+
+        for (const word of words) {
+            const testLine = currentLine + word + ' ';
+            if (ctx.measureText(testLine).width > maxWidth && currentLine !== '') {
+                lines.push(currentLine.trim());
+                currentLine = word + ' ';
+            } else {
+                currentLine = testLine;
+            }
+        }
+        lines.push(currentLine.trim());
+        precomputedLinesRef.current = lines;
+    };
+
+    const handleCameraChange = async (deviceId: string) => {
+        setSelectedCameraId(deviceId);
+        localStorage.setItem('selectedCameraId', deviceId);
+        await startCamera(deviceId, selectedMicrophoneId);
+    };
+
+    const handleMicrophoneChange = async (deviceId: string) => {
+        setSelectedMicrophoneId(deviceId);
+        localStorage.setItem('selectedMicrophoneId', deviceId);
+        await startCamera(selectedCameraId, deviceId);
     };
     
     const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -439,34 +588,25 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     };
 
     useEffect(() => {
-        if (!canvasRef.current || !script) {
-            precomputedLinesRef.current = []; return;
-        }
-        const ctx = canvasRef.current.getContext('2d');
-        if (!ctx) return;
-        
-        // Ensure font is set correctly for accurate text measurement
-        ctx.font = `${teleprompterFontSize}px ${teleprompterFont}`;
-        const maxWidth = ctx.canvas.width - 140; // Reduced width for padding/margins
-        const words = script.split(' ');
-        const lines: string[] = [];
-        let currentLine = '';
+        precomputeTeleprompterLines();
+    }, [script, teleprompterFontSize, teleprompterFont, teleprompterLineHeight, teleprompterTextAlign]);
 
-        for (const word of words) {
-            const testLine = currentLine + word + ' ';
-            // If the test line is too wide, or if it's the first word and it's too wide
-            // (in which case, the word itself might be longer than maxWidth, but we push it anyway)
-            if (ctx.measureText(testLine).width > maxWidth && currentLine !== '') {
-                lines.push(currentLine.trim());
-                currentLine = word + ' ';
-            } else {
-                currentLine = testLine;
+    useEffect(() => {
+        enumerateDevices();
+
+        const handleDeviceChange = () => {
+            enumerateDevices();
+        };
+
+        navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+
+        return () => {
+            navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
             }
-        }
-        lines.push(currentLine.trim()); // Push the last line
-        precomputedLinesRef.current = lines;
-
-    }, [script, teleprompterFontSize, teleprompterFont, teleprompterLineHeight, teleprompterTextAlign]); // Added all relevant teleprompter style properties to dependencies
+        };
+    }, []);
 
     useEffect(() => {
         if (!hasSpeechRecognition) return; // Only initialize if supported
@@ -571,15 +711,116 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
                     ></div>
                 )}
                  {!stream && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <button onClick={startCamera} className="px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600" aria-label="Start Camera">
-                           Start Camera
-                        </button>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gray-900/80">
+                        {isInitializingDevices ? (
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                                <p className="text-sm text-gray-300">Initializing devices...</p>
+                            </div>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => startCamera(selectedCameraId, selectedMicrophoneId)}
+                                    className="px-6 py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
+                                    aria-label="Start Camera"
+                                >
+                                    Start Camera
+                                </button>
+                                <button
+                                    onClick={() => setShowDeviceSettings(!showDeviceSettings)}
+                                    className="px-4 py-2 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-600"
+                                >
+                                    Device Settings
+                                </button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
-            
+
+            {showDeviceSettings && (
+                <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h4 className="font-semibold text-white">Device Settings</h4>
+                        <button
+                            onClick={() => setShowDeviceSettings(false)}
+                            className="text-gray-400 hover:text-white text-xl"
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    <div className="space-y-3">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Camera
+                            </label>
+                            <select
+                                value={selectedCameraId}
+                                onChange={(e) => stream ? handleCameraChange(e.target.value) : setSelectedCameraId(e.target.value)}
+                                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-yellow-500"
+                            >
+                                {availableCameras.map((camera) => (
+                                    <option key={camera.deviceId} value={camera.deviceId}>
+                                        {camera.label || `Camera ${availableCameras.indexOf(camera) + 1}`}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Microphone
+                            </label>
+                            <select
+                                value={selectedMicrophoneId}
+                                onChange={(e) => stream ? handleMicrophoneChange(e.target.value) : setSelectedMicrophoneId(e.target.value)}
+                                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-yellow-500"
+                            >
+                                {availableMicrophones.map((mic) => (
+                                    <option key={mic.deviceId} value={mic.deviceId}>
+                                        {mic.label || `Microphone ${availableMicrophones.indexOf(mic) + 1}`}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {stream && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                    Microphone Level
+                                </label>
+                                <div className="w-full bg-gray-800 rounded-full h-6 overflow-hidden border border-gray-600">
+                                    <div
+                                        className="bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 h-full transition-all duration-100"
+                                        style={{ width: `${audioLevel}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {stream && <div className="space-y-4">
+                <div className="flex gap-2 items-center">
+                    <button
+                        onClick={() => setShowDeviceSettings(!showDeviceSettings)}
+                        className="px-3 py-2 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-600"
+                        title="Change camera or microphone"
+                    >
+                        Devices
+                    </button>
+                    {audioLevel > 0 && (
+                        <div className="flex-1 bg-gray-800 rounded-full h-2 overflow-hidden">
+                            <div
+                                className="bg-yellow-400 h-full transition-all duration-100"
+                                style={{ width: `${Math.min(audioLevel, 100)}%` }}
+                            ></div>
+                        </div>
+                    )}
+                </div>
+
                  <div className="flex justify-center">
                     <button
                         onClick={isRecording ? stopRecording : startRecording}
