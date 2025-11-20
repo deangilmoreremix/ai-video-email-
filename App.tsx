@@ -4,8 +4,10 @@ import { ScriptEditor } from './components/ScriptEditor';
 import { VideoRecorder, Take } from './components/VideoRecorder';
 import { VideoEditor } from './components/VideoEditor';
 import { EmailComposer } from './components/EmailComposer';
+import { Settings } from './components/Settings';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { AppContext, AppContextType } from './contexts/AppContext';
+import { triggerAIScenesGeneratedEvent } from './services/zapierWebhook';
 
 export type AppState = 'main' | 'editing' | 'composer';
 
@@ -38,6 +40,7 @@ const App: React.FC = () => {
     const librariesRef = useRef<AppContextType>({ ffmpeg: null, mediaPipeEffects: null, getGoogleGenAIInstance: getGoogleGenAIInstance });
     const [librariesReady, setLibrariesReady] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
+    const [showSettings, setShowSettings] = useState(false);
 
     const debounce = <F extends (...args: any[]) => any>(func: F, waitFor: number) => {
       let timeout: number;
@@ -270,11 +273,17 @@ const App: React.FC = () => {
             return;
         }
         setIsLoading(true);
-        setError(null); // Clear previous errors
+        setError(null);
         try {
-            // No specific key selection for image generation, uses default process.env.API_KEY
             const scenes = await generateVisualsForScript(script, visualStyle);
             setAiScenes(scenes);
+
+            await triggerAIScenesGeneratedEvent({
+                script,
+                scene_count: scenes.length,
+                visual_style: visualStyle,
+            });
+
             setAppState('composer');
         } catch (e: any) {
             console.error(e);
@@ -356,7 +365,7 @@ const App: React.FC = () => {
     return (
         <AppContext.Provider value={libraries}>
             <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
-                <Header onNewProject={handleNewProject} />
+                <Header onNewProject={handleNewProject} onOpenSettings={() => setShowSettings(true)} />
                 <main className="container mx-auto px-4 py-8 flex-grow flex items-start justify-center">
                      {error && (
                         <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg mb-6 text-center fixed top-24 z-50">
@@ -365,6 +374,7 @@ const App: React.FC = () => {
                     )}
                     {renderContent()}
                 </main>
+                {showSettings && <Settings onClose={() => setShowSettings(false)} />}
             </div>
         </AppContext.Provider>
     );

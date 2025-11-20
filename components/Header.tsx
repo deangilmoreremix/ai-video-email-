@@ -3,9 +3,10 @@ import { VideoIcon } from './icons';
 
 interface HeaderProps {
     onNewProject: () => void;
+    onOpenSettings: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onNewProject }) => {
+export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings }) => {
     return (
         <header className="py-6 relative">
             <div className="container mx-auto px-4 text-center">
@@ -19,7 +20,15 @@ export const Header: React.FC<HeaderProps> = ({ onNewProject }) => {
                     Instantly create compelling video messages. Write a script (or have AI write one), record your message, and let AI generate stunning visuals to match.
                 </p>
             </div>
-            <div className="absolute top-6 right-6">
+            <div className="absolute top-6 right-6 flex gap-2">
+                <button
+                    onClick={onOpenSettings}
+                    className="px-4 py-2 text-sm bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"
+                    title="Open settings"
+                    aria-label="Open settings"
+                >
+                    Settings
+                </button>
                 <button
                     onClick={onNewProject}
                     className="px-4 py-2 text-sm bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 transition-colors"

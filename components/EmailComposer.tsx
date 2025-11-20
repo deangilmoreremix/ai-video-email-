@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SendIcon, ShareIcon, CopyIcon } from './icons';
+import { supabase } from '../lib/supabase';
+import { uploadVideo, canUploadVideo, MAX_VIDEOS_PER_USER } from '../services/videoStorage';
+import { triggerEmailSentEvent } from '../services/zapierWebhook';
 
 interface EmailComposerProps {
     personalVideoBlob: Blob;
@@ -14,6 +17,10 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
     const [recipient, setRecipient] = useState('');
     const [subject, setSubject] = useState('A video message for you');
     const [showCopyToast, setShowCopyToast] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [error, setError] = useState<string | null>(null);
+    const [videoSaved, setVideoSaved] = useState(false);
 
     useEffect(() => {
         const url = URL.createObjectURL(personalVideoBlob);
@@ -21,24 +28,125 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
         return () => URL.revokeObjectURL(url);
     }, [personalVideoBlob]);
 
-    const handleSendEmail = () => {
+    const handleSaveVideo = async () => {
+        try {
+            setSaveStatus('saving');
+            setError(null);
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                setError('Please sign in to save videos');
+                setSaveStatus('error');
+                return;
+            }
+
+            const canSave = await canUploadVideo();
+            if (!canSave) {
+                setError(`You have reached the maximum limit of ${MAX_VIDEOS_PER_USER} videos. Please delete some videos to save new ones.`);
+                setSaveStatus('error');
+                return;
+            }
+
+            await uploadVideo({
+                videoName: `Video_${new Date().toISOString().split('T')[0]}`,
+                videoBlob: personalVideoBlob,
+                script,
+                transcript: transcript || undefined,
+                aiScenes: aiSceneUrls,
+            });
+
+            setSaveStatus('saved');
+            setVideoSaved(true);
+            setTimeout(() => setSaveStatus('idle'), 3000);
+        } catch (err: any) {
+            console.error('Error saving video:', err);
+            setError(err.message);
+            setSaveStatus('error');
+        }
+    };
+
+    const handleSendEmail = async () => {
+        if (!recipient) {
+            setError('Please enter a recipient email address');
+            return;
+        }
+
+        setSending(true);
+        setError(null);
+
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                handleMailtoFallback();
+                return;
+            }
+
+            const body = `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <p>Hi,</p>
+                    <p>I recorded a personal video message for you. You can view it using the link below.</p>
+                    <p><strong>Video Link:</strong> <a href="${videoUrl}">Watch Video</a></p>
+                    <hr/>
+                    <h3>AI Generated Scenes</h3>
+                    <p>Here are some AI-generated scenes based on the script:</p>
+                    ${aiSceneUrls.map(url => `<img src="${url}" alt="AI Scene" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 10px;" />`).join('')}
+                    <hr/>
+                    <h3>Script / Transcript</h3>
+                    <pre style="white-space: pre-wrap; font-family: sans-serif; color: #333; background: #f5f5f5; padding: 15px; border-radius: 8px;">${transcript || script}</pre>
+                </div>
+            `;
+
+            const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`;
+            const { data: { session } } = await supabase.auth.getSession();
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    to: recipient,
+                    subject,
+                    html: body,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.useMailto) {
+                handleMailtoFallback();
+            } else if (!result.success) {
+                throw new Error(result.error || 'Failed to send email');
+            } else {
+                await triggerEmailSentEvent({
+                    to: recipient,
+                    subject,
+                    video_url: videoUrl,
+                });
+                alert('Email sent successfully!');
+            }
+        } catch (err: any) {
+            console.error('Error sending email:', err);
+            setError(err.message);
+        } finally {
+            setSending(false);
+        }
+    };
+
+    const handleMailtoFallback = () => {
         const body = `
-            <p>Hi,</p>
-            <p>I recorded a personal video message for you, which you can find attached to this email.</p>
-            <br/>
-            ---
-            <h3>AI Generated Scenes</h3>
-            <p>Here are some AI-generated scenes based on the script:</p>
-            ${aiSceneUrls.map(url => `<img src="${url}" alt="AI Scene" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 10px;" />`).join('')}
-            <br/>
-            ---
-            <h3>Script / Transcript</h3>
-            <pre style="white-space: pre-wrap; font-family: sans-serif; color: #333;">${transcript || script}</pre>
-            <br/>
-            <p><em>To view the personal intro, please download and play the attached video file.</em></p>
+            Hi,
+
+            I recorded a personal video message for you. Please find the video attached.
+
+            AI Generated Scenes:
+            ${aiSceneUrls.join('\n')}
+
+            Script / Transcript:
+            ${transcript || script}
         `;
 
-        // Download the video file first
         const a = document.createElement('a');
         a.href = videoUrl;
         a.download = 'video_message.webm';
@@ -46,9 +154,9 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
         a.click();
         document.body.removeChild(a);
 
-        // Then open mailto link
         const mailtoLink = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         window.location.href = mailtoLink;
+        setSending(false);
     };
     
     const handleCopyShareLink = () => {
@@ -87,8 +195,30 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
                 </div>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-gray-700" role="group" aria-label="Email Sending Options">
-                <h3 className="font-semibold text-lg">Send Your Video</h3>
+            <div className="space-y-4 pt-4 border-t border-gray-700" role="group" aria-label="Video Actions">
+                {error && (
+                    <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg">
+                        {error}
+                    </div>
+                )}
+
+                {saveStatus === 'saved' && (
+                    <div className="bg-green-900/50 border border-green-700 text-green-300 px-4 py-3 rounded-lg">
+                        Video saved successfully!
+                    </div>
+                )}
+
+                <div className="flex gap-4">
+                    <button
+                        onClick={handleSaveVideo}
+                        disabled={saveStatus === 'saving' || videoSaved}
+                        className="flex-1 px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {saveStatus === 'saving' ? 'Saving...' : videoSaved ? 'Video Saved' : 'Save Video'}
+                    </button>
+                </div>
+
+                <h3 className="font-semibold text-lg pt-4">Send Your Video</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <input 
                         type="email" 
@@ -124,13 +254,14 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
                         >
                            <ShareIcon className="w-5 h-5"/>
                         </button>
-                        <button 
-                            onClick={handleSendEmail} 
-                            className="inline-flex items-center gap-2 px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400"
+                        <button
+                            onClick={handleSendEmail}
+                            disabled={sending}
+                            className="inline-flex items-center gap-2 px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Send email with video and AI scenes"
                         >
                            <SendIcon className="w-5 h-5"/>
-                           <span>Send Email</span>
+                           <span>{sending ? 'Sending...' : 'Send Email'}</span>
                         </button>
                     </div>
                 </div>
