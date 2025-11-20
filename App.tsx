@@ -9,6 +9,9 @@ import { VideoLibrary } from './components/VideoLibrary';
 import { AuthModal } from './components/AuthModal';
 import { AIFeaturesPanel } from './components/AIFeaturesPanel';
 import { AdvancedAIPanel } from './components/AdvancedAIPanel';
+import { ProgressIndicator } from './components/ProgressIndicator';
+import { AIAssistant } from './components/AIAssistant';
+import { SmartTrigger, useSmartTrigger } from './components/SmartTrigger';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { AppContext, AppContextType } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -48,6 +51,12 @@ const App: React.FC = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [showVideoLibrary, setShowVideoLibrary] = useState(false);
     const [showAuth, setShowAuth] = useState(false);
+    const [presentationScore, setPresentationScore] = useState<number>();
+    const [hasChapters, setHasChapters] = useState(false);
+    const [hasSEO, setHasSEO] = useState(false);
+    const [hasTeamApproval, setHasTeamApproval] = useState(false);
+    const [hasEngagementPrediction, setHasEngagementPrediction] = useState(false);
+    const { trigger, showTrigger, hideTrigger } = useSmartTrigger();
 
     const debounce = <F extends (...args: any[]) => any>(func: F, waitFor: number) => {
       let timeout: number;
@@ -190,7 +199,19 @@ const App: React.FC = () => {
 
     const handleSelectTake = (take: Take) => {
         setSelectedTake(take);
-        setAppState('main'); 
+        setAppState('main');
+
+        if (takes.filter(t => t.status === 'complete').length === 1) {
+            showTrigger(
+                'Recording Complete!',
+                'Great job! Now let\'s optimize your video for maximum engagement.',
+                [
+                    { label: 'Skip', action: () => {} },
+                    { label: 'Analyze Video', action: () => {}, primary: true }
+                ],
+                'success'
+            );
+        }
     };
 
     const handleEditVideo = (take: Take) => {
@@ -338,6 +359,42 @@ const App: React.FC = () => {
                 {showSettings && <Settings onClose={() => setShowSettings(false)} />}
                 {showVideoLibrary && <VideoLibrary onClose={() => setShowVideoLibrary(false)} />}
                 {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+
+                <ProgressIndicator
+                    script={script}
+                    videoRecorded={takes.some(t => t.status === 'complete')}
+                    presentationScore={presentationScore}
+                    hasChapters={hasChapters}
+                    hasSEO={hasSEO}
+                    hasTeamApproval={hasTeamApproval}
+                    hasEngagementPrediction={hasEngagementPrediction}
+                    onAction={(action) => {
+                        if (action === 'continue') {
+                            console.log('Continue optimization');
+                        }
+                    }}
+                />
+
+                <AIAssistant
+                    currentContext={
+                        appState === 'editing' ? 'editing' :
+                        appState === 'composer' ? 'composer' :
+                        takes.some(t => t.status === 'recording') ? 'recording' :
+                        script ? 'script' : 'idle'
+                    }
+                    script={script}
+                    isRecording={takes.some(t => t.status === 'recording')}
+                    hasVideo={takes.some(t => t.status === 'complete')}
+                />
+
+                <SmartTrigger
+                    show={trigger.show}
+                    title={trigger.title}
+                    message={trigger.message}
+                    actions={trigger.actions}
+                    onDismiss={hideTrigger}
+                    type={trigger.type}
+                />
                 </div>
             </AppContext.Provider>
         </AuthProvider>
