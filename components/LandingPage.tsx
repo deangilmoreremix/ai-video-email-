@@ -35,7 +35,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 onClick={onGetStarted}
                 className="px-8 py-4 bg-gradient-to-r from-blue-600 to-green-600 text-white text-lg font-semibold rounded-xl hover:from-blue-500 hover:to-green-500 transition-all duration-300 shadow-lg shadow-blue-500/50 transform hover:scale-105 hover:shadow-xl hover:shadow-blue-500/60 active:scale-95"
               >
-                Get Started Free
+                Get Started
               </button>
               <button
                 onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
@@ -416,7 +416,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
               onClick={onGetStarted}
               className="px-10 py-5 bg-white text-blue-600 text-lg font-bold rounded-xl hover:bg-gray-100 transition-all duration-300 shadow-2xl transform hover:scale-110 active:scale-95 hover:shadow-white/50"
             >
-              Start Creating Free Videos Now
+              Start Creating Videos Now
             </button>
             <p className="text-sm mt-4 text-blue-100">
               No credit card required • Set up in under 2 minutes
