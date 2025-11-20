@@ -8,6 +8,7 @@ import { Settings } from './components/Settings';
 import { VideoLibrary } from './components/VideoLibrary';
 import { AuthModal } from './components/AuthModal';
 import { AIFeaturesPanel } from './components/AIFeaturesPanel';
+import { AdvancedAIPanel } from './components/AdvancedAIPanel';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { AppContext, AppContextType } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -295,13 +296,21 @@ const App: React.FC = () => {
                             />
                         </div>
                         {(script || selectedTake) && (
-                            <AIFeaturesPanel
-                                script={script}
-                                onScriptUpdate={setScript}
-                                videoBlob={selectedTake?.blob}
-                                aiScenes={aiScenes}
-                                onScenesUpdate={setAiScenes}
-                            />
+                            <>
+                                <AIFeaturesPanel
+                                    script={script}
+                                    onScriptUpdate={setScript}
+                                    videoBlob={selectedTake?.blob}
+                                    aiScenes={aiScenes}
+                                    onScenesUpdate={setAiScenes}
+                                />
+                                <AdvancedAIPanel
+                                    videoBlob={selectedTake?.blob || null}
+                                    videoId={undefined}
+                                    script={script}
+                                    onError={handleGlobalError}
+                                />
+                            </>
                         )}
                     </div>
                 );
