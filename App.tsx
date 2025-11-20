@@ -5,8 +5,11 @@ import { VideoRecorder, Take } from './components/VideoRecorder';
 import { VideoEditor } from './components/VideoEditor';
 import { EmailComposer } from './components/EmailComposer';
 import { Settings } from './components/Settings';
+import { VideoLibrary } from './components/VideoLibrary';
+import { AuthModal } from './components/AuthModal';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { AppContext, AppContextType } from './contexts/AppContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { triggerAIScenesGeneratedEvent } from './services/zapierWebhook';
 
 export type AppState = 'main' | 'editing' | 'composer';
@@ -41,6 +44,8 @@ const App: React.FC = () => {
     const [librariesReady, setLibrariesReady] = useState(false);
     const [loadError, setLoadError] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState(false);
+    const [showVideoLibrary, setShowVideoLibrary] = useState(false);
+    const [showAuth, setShowAuth] = useState(false);
 
     const debounce = <F extends (...args: any[]) => any>(func: F, waitFor: number) => {
       let timeout: number;
@@ -292,9 +297,15 @@ const App: React.FC = () => {
     };
 
     return (
-        <AppContext.Provider value={libraries}>
-            <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
-                <Header onNewProject={handleNewProject} onOpenSettings={() => setShowSettings(true)} />
+        <AuthProvider>
+            <AppContext.Provider value={libraries}>
+                <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
+                <Header
+                    onNewProject={handleNewProject}
+                    onOpenSettings={() => setShowSettings(true)}
+                    onOpenVideoLibrary={() => setShowVideoLibrary(true)}
+                    onOpenAuth={() => setShowAuth(true)}
+                />
                 <main className="container mx-auto px-4 py-8 flex-grow flex items-start justify-center">
                      {error && (
                         <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg mb-6 text-center fixed top-24 z-50">
@@ -304,8 +315,11 @@ const App: React.FC = () => {
                     {renderContent()}
                 </main>
                 {showSettings && <Settings onClose={() => setShowSettings(false)} />}
-            </div>
-        </AppContext.Provider>
+                {showVideoLibrary && <VideoLibrary onClose={() => setShowVideoLibrary(false)} />}
+                {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+                </div>
+            </AppContext.Provider>
+        </AuthProvider>
     );
 };
 
