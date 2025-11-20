@@ -1,6 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { generateScriptFromPrompt, VisualStyle, getKeywordsFromScript } from '../services/geminiService';
 import { WandIcon } from './icons';
+
+const getStyleIcon = (style: VisualStyle): string => {
+    const icons: Record<VisualStyle, string> = {
+        'Modern Tech': '💻',
+        'Photorealistic': '📸',
+        'Anime': '🎨',
+        'Cinematic': '🎬',
+        'Minimalist': '⬜',
+        'Corporate': '💼',
+        'Vibrant': '🌈',
+        'Dark Mode': '🌙'
+    };
+    return icons[style] || '✨';
+};
+
+const getStyleDescription = (style: VisualStyle): string => {
+    const descriptions: Record<VisualStyle, string> = {
+        'Modern Tech': 'Futuristic tech visuals with glowing elements and data visualizations',
+        'Photorealistic': 'Professional photo-quality images with cinematic lighting',
+        'Anime': 'Vibrant anime-style artwork with expressive characters',
+        'Cinematic': 'Movie-quality scenes with dramatic lighting and film grain',
+        'Minimalist': 'Clean, simple designs with elegant negative space',
+        'Corporate': 'Professional business aesthetic for formal presentations',
+        'Vibrant': 'Bold, energetic colors for maximum visual impact',
+        'Dark Mode': 'Moody, dramatic aesthetic with deep shadows'
+    };
+    return descriptions[style] || 'Custom visual style';
+};
 import { useAppLibs } from '../contexts/AppContext';
 import { TemplateSelector } from './TemplateSelector';
 import { generateSEOTitle, predictEngagement, SEOMetadata, EngagementPreview } from '../services/seoService';
@@ -280,21 +308,27 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
                 )}
                 <div className="space-y-2">
                     <label id="visual-style-label" className="block text-sm font-medium text-gray-400 text-center">2. Choose Visual Style</label>
-                    <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="visual-style-label">
-                        {(['Modern Tech', 'Photorealistic', 'Anime'] as VisualStyle[]).map(style => (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2" role="radiogroup" aria-labelledby="visual-style-label">
+                        {(['Modern Tech', 'Photorealistic', 'Anime', 'Cinematic', 'Minimalist', 'Corporate', 'Vibrant', 'Dark Mode'] as VisualStyle[]).map(style => (
                             <button
                                 key={style}
                                 onClick={() => setVisualStyle(style)}
                                 disabled={disabled || isSubmitting}
-                                className={`px-3 py-2 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 ${visualStyle === style ? 'bg-yellow-500 text-gray-900' : 'bg-gray-700 hover:bg-gray-600'}`}
+                                className={`px-3 py-2 text-xs md:text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 ${
+                                    visualStyle === style
+                                        ? 'bg-yellow-500 text-gray-900 ring-2 ring-yellow-400'
+                                        : 'bg-gray-700 hover:bg-gray-600 text-gray-200'
+                                }`}
                                 aria-pressed={visualStyle === style}
                                 aria-label={`${style} visual style`}
                                 role="radio"
+                                title={getStyleDescription(style)}
                             >
-                                {style}
+                                {getStyleIcon(style)} {style}
                             </button>
                         ))}
                     </div>
+                    <p className="text-xs text-gray-500 text-center mt-2">{getStyleDescription(visualStyle)}</p>
                 </div>
                 <button
                     onClick={onSubmit}

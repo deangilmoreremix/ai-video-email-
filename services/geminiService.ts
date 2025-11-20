@@ -107,7 +107,7 @@ export const getKeywordsFromScript = async (script: string): Promise<string[]> =
 }
 
 // --- Visuals ---
-export type VisualStyle = 'Modern Tech' | 'Photorealistic' | 'Anime';
+export type VisualStyle = 'Modern Tech' | 'Photorealistic' | 'Anime' | 'Cinematic' | 'Minimalist' | 'Corporate' | 'Vibrant' | 'Dark Mode';
 
 export const generateVisualsForScript = async (script: string, style: VisualStyle): Promise<string[]> => {
     return retryWithBackoff(async () => {
@@ -117,9 +117,14 @@ export const generateVisualsForScript = async (script: string, style: VisualStyl
             const imagePromises: Promise<string>[] = [];
 
             const stylePrompt = {
-                'Modern Tech': 'modern tech art style, clean, abstract, glowing data visualizations',
-                'Photorealistic': 'photorealistic, cinematic lighting, 8k, sharp focus',
-                'Anime': 'anime art style, vibrant colors, detailed background, dynamic'
+                'Modern Tech': 'modern tech art style, clean, abstract, glowing data visualizations, futuristic',
+                'Photorealistic': 'photorealistic, cinematic lighting, 8k, sharp focus, professional photography',
+                'Anime': 'anime art style, vibrant colors, detailed background, dynamic, expressive',
+                'Cinematic': 'cinematic movie-quality, dramatic lighting, film grain, color grading, widescreen',
+                'Minimalist': 'minimalist design, clean lines, simple composition, negative space, elegant',
+                'Corporate': 'professional corporate style, clean, business-appropriate, sophisticated, modern office',
+                'Vibrant': 'vibrant bold colors, high contrast, energetic, eye-catching, dynamic composition',
+                'Dark Mode': 'dark moody aesthetic, low-key lighting, deep shadows, dramatic contrast, noir'
             }[style];
 
             for (const scene of scenes) {
