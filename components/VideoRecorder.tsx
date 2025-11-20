@@ -166,7 +166,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     }, [isRecording, startRecording, stopRecording]);
 
     const processFrame = useCallback(async () => {
-        if (isProcessingFrameRef.current || !videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || !mediaPipeEffects) {
+        if (isProcessingFrameRef.current || !videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended) {
             animationFrameRef.current = requestAnimationFrame(processFrame);
             return;
         }
@@ -343,7 +343,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
         };
 
         const drawBaseLayer = new Promise<void>((resolve) => {
-            if (backgroundEffect !== 'none' && mediaPipeEffects.segmenter) {
+            if (backgroundEffect !== 'none' && mediaPipeEffects?.segmenter) {
                 mediaPipeEffects.segmenter.segmentForVideo(video, startTimeMs, (result: any) => {
                     ctx.save();
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -370,13 +370,13 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
 
         await drawBaseLayer;
 
-        if (arEffect !== 'none' && mediaPipeEffects.faceMesh) {
+        if (arEffect !== 'none' && mediaPipeEffects?.faceMesh) {
             const result = mediaPipeEffects.faceMesh.detectForVideo(video, startTimeMs);
             if (result.faceLandmarks && result.faceLandmarks[0]) {
                 drawArEffects(ctx, result.faceLandmarks[0]);
             }
         }
-        if (isGestureControlEnabled && mediaPipeEffects.handLandmarker) {
+        if (isGestureControlEnabled && mediaPipeEffects?.handLandmarker) {
             const result = mediaPipeEffects.handLandmarker.detectForVideo(video, startTimeMs);
             if (result.landmarks && result.landmarks.length > 0) {
                 detectGesture(result.landmarks[0]);
@@ -577,23 +577,17 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
                         </button>
                     </div>
                 )}
-                 {!mediaPipeEffects && stream && (
-                     <div className="absolute inset-0 flex items-center justify-center bg-black/50" role="status" aria-live="polite">
-                        <p className="text-white">Initializing AI Engine...</p>
-                    </div>
-                 )}
             </div>
             
             {stream && <div className="space-y-4">
                  <div className="flex justify-center">
                     <button
                         onClick={isRecording ? stopRecording : startRecording}
-                        disabled={!mediaPipeEffects}
                         className={`flex items-center justify-center w-20 h-20 rounded-full transition-all duration-300 ${
                         isRecording
                             ? 'bg-red-600 text-white shadow-red-500/50'
                             : 'bg-white text-red-600 shadow-white/50'
-                        } shadow-lg transform hover:scale-110 disabled:opacity-50 disabled:scale-100`}
+                        } shadow-lg transform hover:scale-110`}
                         aria-label={isRecording ? 'Stop Recording' : 'Start Recording'}
                         role="button"
                     >
