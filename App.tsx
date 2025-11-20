@@ -6,6 +6,7 @@ import { VideoEditor } from './components/VideoEditor';
 import { EmailComposer } from './components/EmailComposer';
 import { Settings } from './components/Settings';
 import { VideoLibrary } from './components/VideoLibrary';
+import { LandingPage } from './components/LandingPage';
 import { UserVideo } from './lib/supabase';
 import { AuthModal } from './components/AuthModal';
 import { AIFeaturesPanel } from './components/AIFeaturesPanel';
@@ -18,7 +19,7 @@ import { AppContext, AppContextType } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { triggerAIScenesGeneratedEvent } from './services/zapierWebhook';
 
-export type AppState = 'main' | 'editing' | 'composer';
+export type AppState = 'landing' | 'main' | 'editing' | 'composer';
 
 // Interface for the saved project state
 interface SavedProject {
@@ -34,7 +35,7 @@ interface SavedProject {
 declare const window: any;
 
 const App: React.FC = () => {
-    const [appState, setAppState] = useState<AppState>('main');
+    const [appState, setAppState] = useState<AppState>('landing');
     const [script, setScript] = useState<string>('');
     const [visualStyle, setVisualStyle] = useState<VisualStyle>('Modern Tech');
     const [takes, setTakes] = useState<Take[]>([]);
@@ -305,6 +306,8 @@ const App: React.FC = () => {
 
     const renderContent = () => {
         switch(appState) {
+            case 'landing':
+                return <LandingPage onGetStarted={() => setAppState('main')} />;
             case 'editing':
                 if (!selectedTake) {
                     setAppState('main');
@@ -383,13 +386,15 @@ const App: React.FC = () => {
         <AuthProvider>
             <AppContext.Provider value={libraries}>
                 <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
-                <Header
-                    onNewProject={handleNewProject}
-                    onOpenSettings={() => setShowSettings(true)}
-                    onOpenVideoLibrary={() => setShowVideoLibrary(true)}
-                    onOpenAuth={() => setShowAuth(true)}
-                />
-                <main className="container mx-auto px-4 py-8 flex-grow flex items-start justify-center">
+                {appState !== 'landing' && (
+                    <Header
+                        onNewProject={handleNewProject}
+                        onOpenSettings={() => setShowSettings(true)}
+                        onOpenVideoLibrary={() => setShowVideoLibrary(true)}
+                        onOpenAuth={() => setShowAuth(true)}
+                    />
+                )}
+                <main className={`${appState === 'landing' ? '' : 'container mx-auto px-4 py-8'} flex-grow flex items-start justify-center`}>
                      {error && (
                         <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg mb-6 text-center fixed top-24 z-50">
                             <p>{error}</p>
@@ -404,41 +409,45 @@ const App: React.FC = () => {
                 />}
                 {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
 
-                <ProgressIndicator
-                    script={script}
-                    videoRecorded={takes.some(t => t.status === 'complete')}
-                    presentationScore={presentationScore}
-                    hasChapters={hasChapters}
-                    hasSEO={hasSEO}
-                    hasTeamApproval={hasTeamApproval}
-                    hasEngagementPrediction={hasEngagementPrediction}
-                    onAction={(action) => {
-                        if (action === 'continue') {
-                            console.log('Continue optimization');
-                        }
-                    }}
-                />
+                {appState !== 'landing' && (
+                    <>
+                        <ProgressIndicator
+                            script={script}
+                            videoRecorded={takes.some(t => t.status === 'complete')}
+                            presentationScore={presentationScore}
+                            hasChapters={hasChapters}
+                            hasSEO={hasSEO}
+                            hasTeamApproval={hasTeamApproval}
+                            hasEngagementPrediction={hasEngagementPrediction}
+                            onAction={(action) => {
+                                if (action === 'continue') {
+                                    console.log('Continue optimization');
+                                }
+                            }}
+                        />
 
-                <AIAssistant
-                    currentContext={
-                        appState === 'editing' ? 'editing' :
-                        appState === 'composer' ? 'composer' :
-                        takes.some(t => t.status === 'recording') ? 'recording' :
-                        script ? 'script' : 'idle'
-                    }
-                    script={script}
-                    isRecording={takes.some(t => t.status === 'recording')}
-                    hasVideo={takes.some(t => t.status === 'complete')}
-                />
+                        <AIAssistant
+                            currentContext={
+                                appState === 'editing' ? 'editing' :
+                                appState === 'composer' ? 'composer' :
+                                takes.some(t => t.status === 'recording') ? 'recording' :
+                                script ? 'script' : 'idle'
+                            }
+                            script={script}
+                            isRecording={takes.some(t => t.status === 'recording')}
+                            hasVideo={takes.some(t => t.status === 'complete')}
+                        />
 
-                <SmartTrigger
-                    show={trigger.show}
-                    title={trigger.title}
-                    message={trigger.message}
-                    actions={trigger.actions}
-                    onDismiss={hideTrigger}
-                    type={trigger.type}
-                />
+                        <SmartTrigger
+                            show={trigger.show}
+                            title={trigger.title}
+                            message={trigger.message}
+                            actions={trigger.actions}
+                            onDismiss={hideTrigger}
+                            type={trigger.type}
+                        />
+                    </>
+                )}
                 </div>
             </AppContext.Provider>
         </AuthProvider>
