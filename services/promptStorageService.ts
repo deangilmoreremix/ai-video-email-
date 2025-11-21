@@ -192,7 +192,12 @@ export const getPublicPrompts = async (category?: string): Promise<SavedPrompt[]
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching public prompts:', error);
+      throw error;
+    }
+
+    console.log('Public prompts fetched:', data?.length || 0, 'prompts', category ? `(category: ${category})` : '(all categories)');
     return data || [];
   } catch (error) {
     console.error('Error fetching public prompts:', error);

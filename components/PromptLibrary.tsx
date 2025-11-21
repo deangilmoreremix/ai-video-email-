@@ -45,6 +45,7 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ onSelectPrompt, on
   const loadData = async () => {
     setLoading(true);
     try {
+      console.log('Loading data for tab:', activeTab, 'category:', selectedCategory);
       if (activeTab === 'history') {
         const data = await getPromptHistory(50, selectedCategory !== 'all' ? selectedCategory : undefined);
         setHistory(data);
@@ -55,6 +56,7 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ onSelectPrompt, on
         setSaved(data);
       } else if (activeTab === 'public') {
         const data = await getPublicPrompts(selectedCategory !== 'all' ? selectedCategory : undefined);
+        console.log('Public prompts loaded:', data.length);
         setPublicPrompts(data);
       } else if (activeTab === 'suggestions' && selectedCategory !== 'all') {
         const data = await generatePromptSuggestions(selectedCategory);
