@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { generateScriptFromPrompt, VisualStyle, getKeywordsFromScript } from '../services/geminiService';
 import { WandIcon } from './icons';
+import { PromptBuilder } from './PromptBuilder';
+import { PromptLibrary } from './PromptLibrary';
+import { savePromptToHistory } from '../services/promptStorageService';
 
 const getStyleIcon = (style: VisualStyle): string => {
     const icons: Record<VisualStyle, string> = {
@@ -48,8 +51,9 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
     const { getGoogleGenAIInstance } = useAppLibs();
     const [assistantPrompt, setAssistantPrompt] = useState('');
     const [isGeneratingScript, setIsGeneratingScript] = useState(false);
-    const [activeTab, setActiveTab] = useState<'prompt' | 'template'>('prompt');
+    const [activeTab, setActiveTab] = useState<'prompt' | 'template' | 'builder'>('builder');
     const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+    const [showPromptLibrary, setShowPromptLibrary] = useState(false);
     const [seoMetadata, setSeoMetadata] = useState<SEOMetadata | null>(null);
     const [engagementPreview, setEngagementPreview] = useState<EngagementPreview | null>(null);
     const [loadingSEO, setLoadingSEO] = useState(false);
@@ -84,21 +88,38 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
         }
     };
 
-    const handleGenerateScript = async () => {
-        if (!assistantPrompt.trim()) {
+    const handleGenerateScript = async (prompt?: string) => {
+        const finalPrompt = prompt || assistantPrompt;
+        if (!finalPrompt.trim()) {
             onError("Please enter a prompt to generate a script.");
             return;
         }
         setIsGeneratingScript(true);
         onError('');
         try {
-            const generatedScript = await generateScriptFromPrompt(assistantPrompt);
+            const generatedScript = await generateScriptFromPrompt(finalPrompt);
             onScriptChange(generatedScript);
+
+            // Save to history
+            await savePromptToHistory({
+                original_prompt: finalPrompt,
+                generated_script: generatedScript
+            });
         } catch (e: any) {
             onError(`Failed to generate script: ${e.message || 'Unknown error'}. Please ensure your API Key is valid.`);
         } finally {
             setIsGeneratingScript(false);
         }
+    };
+
+    const handlePromptFromBuilder = async (improvedPrompt: string) => {
+        setAssistantPrompt(improvedPrompt);
+        await handleGenerateScript(improvedPrompt);
+    };
+
+    const handlePromptFromLibrary = (prompt: string) => {
+        setAssistantPrompt(prompt);
+        setActiveTab('prompt');
     };
 
     const handleTemplateGenerated = (generatedScript: string) => {
@@ -114,6 +135,16 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
                 <h3 className="text-lg font-semibold text-center text-gray-300">1. Create Your Script</h3>
                 <div className="flex gap-2 mb-4">
                     <button
+                        onClick={() => setActiveTab('builder')}
+                        className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-colors ${
+                            activeTab === 'builder'
+                                ? 'bg-yellow-400 text-gray-900'
+                                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                    >
+                        Smart Prompt
+                    </button>
+                    <button
                         onClick={() => setActiveTab('prompt')}
                         className={`flex-1 py-2 px-4 rounded-lg font-semibold transition-colors ${
                             activeTab === 'prompt'
@@ -121,7 +152,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
                     >
-                        Generate from Prompt
+                        Quick Prompt
                     </button>
                     <button
                         onClick={() => setActiveTab('template')}
@@ -131,12 +162,26 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
                                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                         }`}
                     >
-                        Use Template
+                        Template
                     </button>
                 </div>
 
-                {/* AI Script Assistant */}
-                {activeTab === 'prompt' ? (
+                {/* Prompt Builder */}
+                {activeTab === 'builder' ? (
+                    <div>
+                        <PromptBuilder
+                            initialPrompt={assistantPrompt}
+                            onPromptGenerated={handlePromptFromBuilder}
+                            onError={onError}
+                        />
+                        <button
+                            onClick={() => setShowPromptLibrary(true)}
+                            className="w-full mt-3 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors text-sm"
+                        >
+                            📚 Browse Prompt Library
+                        </button>
+                    </div>
+                ) : activeTab === 'prompt' ? (
                     <div className="flex gap-2">
                         <input
                             type="text"
@@ -345,6 +390,13 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = ({ script, onScriptChan
                 <TemplateSelector
                     onScriptGenerated={handleTemplateGenerated}
                     onClose={() => setShowTemplateSelector(false)}
+                />
+            )}
+
+            {showPromptLibrary && (
+                <PromptLibrary
+                    onSelectPrompt={handlePromptFromLibrary}
+                    onClose={() => setShowPromptLibrary(false)}
                 />
             )}
         </div>
