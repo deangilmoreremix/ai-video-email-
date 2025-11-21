@@ -20,7 +20,7 @@ export const getGoogleGenAIInstance = async (
 ): Promise<GoogleGenAI> => {
     // Check if the current environment's API_KEY has changed or if an instance hasn't been created yet.
     // This allows for dynamic API key updates without full page reload.
-    const currentEnvApiKey = process.env.API_KEY || null;
+    const currentEnvApiKey = import.meta.env.VITE_GEMINI_API_KEY || null;
 
     if (requireAistudioKeySelection) {
         if (!window.aistudio) {
@@ -42,8 +42,8 @@ export const getGoogleGenAIInstance = async (
                 await window.aistudio.openSelectKey();
                 // Optimistically assume key selection was successful.
                 hasKey = true;
-                // Since the key selection might have changed process.env.API_KEY, we re-evaluate.
-                const newEnvApiKey = process.env.API_KEY || null;
+                // Since the key selection might have changed the API key, we re-evaluate.
+                const newEnvApiKey = import.meta.env.VITE_GEMINI_API_KEY || null;
                 if (!aiInstance || lastSelectedApiKey !== newEnvApiKey) {
                     aiInstance = new GoogleGenAI({ apiKey: newEnvApiKey! });
                     lastSelectedApiKey = newEnvApiKey;
@@ -58,12 +58,12 @@ export const getGoogleGenAIInstance = async (
         }
     }
 
-    // Default behavior for other models: use process.env.API_KEY.
+    // Default behavior for other models: use VITE_GEMINI_API_KEY.
     // Re-initialize only if API key has changed or instance is null.
     if (!aiInstance || lastSelectedApiKey !== currentEnvApiKey) {
         if (!currentEnvApiKey) {
-            console.error("API_KEY is not set. Ensure process.env.API_KEY is configured.");
-            throw new Error("API_KEY is not configured.");
+            console.error("GEMINI_API_KEY is not set. Ensure VITE_GEMINI_API_KEY is configured in your .env file.");
+            throw new Error("GEMINI_API_KEY is not configured.");
         }
         aiInstance = new GoogleGenAI({ apiKey: currentEnvApiKey });
         lastSelectedApiKey = currentEnvApiKey;
