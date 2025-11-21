@@ -68,7 +68,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white overflow-hidden relative">
+    <div className="min-h-screen bg-gray-900 text-white overflow-hidden relative pt-20">
       {/* Animated Background Mesh Gradient */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"></div>
