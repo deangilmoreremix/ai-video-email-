@@ -31,7 +31,7 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
   const [videoPurpose, setVideoPurpose] = useState('');
   const [tone, setTone] = useState('professional');
   const [keyMessage, setKeyMessage] = useState('');
-  const [videoLength, setVideoLength] = useState(60);
+  const [videoLength, setVideoLength] = useState(6);
 
   const [isImproving, setIsImproving] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -253,17 +253,17 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
 
           <div>
             <label className="text-xs text-gray-400 block mb-1">
-              Target Length: {videoLength} seconds
+              Target Length (Gemini Veo)
             </label>
-            <input
-              type="range"
-              min="30"
-              max="180"
-              step="15"
+            <select
               value={videoLength}
               onChange={(e) => setVideoLength(Number(e.target.value))}
-              className="w-full"
-            />
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-yellow-400"
+            >
+              <option value={4}>4 seconds</option>
+              <option value={6}>6 seconds</option>
+              <option value={8}>8 seconds</option>
+            </select>
           </div>
         </div>
       )}
