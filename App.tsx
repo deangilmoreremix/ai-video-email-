@@ -152,7 +152,7 @@ const App: React.FC = () => {
     useEffect(() => {
         const init = async () => {
             // Early check for API_KEY
-            if (!process.env.API_KEY) {
+            if (!import.meta.env.VITE_GEMINI_API_KEY) {
                 setLoadError("API_KEY environment variable is not configured. Please ensure your API key is set.");
                 return; // Stop initialization if API key is missing
             }
