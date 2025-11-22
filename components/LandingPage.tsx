@@ -1107,6 +1107,578 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           </div>
         </section>
 
+        {/* Video Gallery Section */}
+        <section className="py-20 observe-animation opacity-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Watch Real Results in Action</h2>
+              <p className="text-xl text-gray-400">See how professionals are using AI video to close deals</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                { title: "Sarah's Agency Growth Story", views: "12.5K", duration: "3:24", category: "Agency" },
+                { title: "How Marcus Closed 3 Enterprise Deals", views: "8.2K", duration: "4:15", category: "Sales" },
+                { title: "Emily Landed Her Dream Role", views: "15.1K", duration: "2:47", category: "Career" },
+                { title: "Scaling Video Outreach to 1000+", views: "9.8K", duration: "5:30", category: "Tutorial" },
+                { title: "AI Prompt Engineering Masterclass", views: "18.3K", duration: "6:12", category: "Education" },
+                { title: "ROI Analysis: First 90 Days", views: "11.7K", duration: "4:45", category: "Analytics" }
+              ].map((video, index) => (
+                <div key={index} className="bg-gray-800/40 backdrop-blur-sm border border-gray-700 rounded-xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:scale-105 group cursor-pointer">
+                  <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-green-600/10"></div>
+                    <div className="relative z-10">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-green-600 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-xs font-bold">
+                      {video.duration}
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <span className="inline-block px-2 py-1 bg-blue-600/20 text-blue-400 text-xs font-bold rounded mb-2">
+                      {video.category}
+                    </span>
+                    <h3 className="font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{video.title}</h3>
+                    <p className="text-sm text-gray-500">{video.views} views</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Case Studies Section */}
+        <section className="py-20 bg-gray-800/20 observe-animation opacity-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">In-Depth Case Studies</h2>
+              <p className="text-xl text-gray-400">Real metrics from real businesses</p>
+            </div>
+
+            <div className="space-y-8">
+              {[
+                {
+                  company: "TechGrowth Agency",
+                  industry: "B2B SaaS Marketing",
+                  challenge: "Struggling to scale personalized outreach to 500+ prospects monthly",
+                  solution: "Implemented AI video for all cold outreach campaigns",
+                  results: [
+                    { metric: "Response Rate", before: "1.2%", after: "4.8%", increase: "+300%" },
+                    { metric: "Meeting Bookings", before: "12/month", after: "47/month", increase: "+292%" },
+                    { metric: "Time Per Video", before: "45 min", after: "3 min", increase: "-93%" },
+                    { metric: "Revenue Impact", before: "$50K/mo", after: "$180K/mo", increase: "+260%" }
+                  ],
+                  testimonial: "Game-changing for our agency. We went from manually creating 20 videos per month to 500+ with AI.",
+                  avatar: "👨‍💼"
+                },
+                {
+                  company: "Executive Talent Co",
+                  industry: "Executive Recruitment",
+                  challenge: "Candidates weren't standing out in competitive C-suite applications",
+                  solution: "Created AI-powered video applications for all executive placements",
+                  results: [
+                    { metric: "Interview Rate", before: "8%", after: "31%", increase: "+288%" },
+                    { metric: "Offer Rate", before: "2.1%", after: "9.4%", increase: "+348%" },
+                    { metric: "Time to Placement", before: "90 days", after: "35 days", increase: "-61%" },
+                    { metric: "Client Satisfaction", before: "7.2/10", after: "9.6/10", increase: "+33%" }
+                  ],
+                  testimonial: "Our candidates now land interviews 3X more often. The video applications are the difference-maker.",
+                  avatar: "👩‍💼"
+                },
+                {
+                  company: "CloudScale Solutions",
+                  industry: "Enterprise Software Sales",
+                  challenge: "Cold email response rates under 1% with generic messaging",
+                  solution: "Personalized video outreach for all enterprise prospects",
+                  results: [
+                    { metric: "Email Open Rate", before: "18%", after: "64%", increase: "+256%" },
+                    { metric: "Response Rate", before: "0.8%", after: "5.2%", increase: "+550%" },
+                    { metric: "Pipeline Value", before: "$2.1M", after: "$8.7M", increase: "+314%" },
+                    { metric: "Deal Velocity", before: "120 days", after: "65 days", increase: "-46%" }
+                  ],
+                  testimonial: "We closed more deals in Q1 using AI video than all of last year combined.",
+                  avatar: "👨‍💻"
+                }
+              ].map((study, index) => (
+                <div key={index} className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 hover:border-blue-500/50 transition-all duration-500">
+                  <div className="flex items-start gap-4 mb-6">
+                    <div className="text-5xl">{study.avatar}</div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-white mb-2">{study.company}</h3>
+                      <p className="text-blue-400 font-semibold mb-2">{study.industry}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-6 mb-6">
+                    <div className="md:col-span-1 bg-red-900/10 border border-red-500/30 rounded-xl p-4">
+                      <p className="text-xs font-bold text-red-400 mb-2">CHALLENGE</p>
+                      <p className="text-sm text-gray-300">{study.challenge}</p>
+                    </div>
+                    <div className="md:col-span-1 bg-blue-900/10 border border-blue-500/30 rounded-xl p-4">
+                      <p className="text-xs font-bold text-blue-400 mb-2">SOLUTION</p>
+                      <p className="text-sm text-gray-300">{study.solution}</p>
+                    </div>
+                    <div className="md:col-span-1 bg-green-900/10 border border-green-500/30 rounded-xl p-4">
+                      <p className="text-xs font-bold text-green-400 mb-2">RESULT</p>
+                      <div className="text-2xl font-bold text-green-400">{study.results[3].increase}</div>
+                      <p className="text-xs text-gray-400">{study.results[3].metric}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    {study.results.map((result, i) => (
+                      <div key={i} className="bg-gray-900/50 border border-gray-700 rounded-xl p-4">
+                        <p className="text-xs text-gray-500 mb-1">{result.metric}</p>
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className="text-xs text-gray-500">Before:</span>
+                          <span className="text-sm font-bold text-gray-400">{result.before}</span>
+                        </div>
+                        <div className="flex items-baseline gap-2 mb-2">
+                          <span className="text-xs text-gray-500">After:</span>
+                          <span className="text-sm font-bold text-white">{result.after}</span>
+                        </div>
+                        <span className="text-lg font-bold text-green-400">{result.increase}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-blue-900/10 border-l-4 border-blue-500 rounded-lg p-4">
+                    <p className="text-gray-300 italic">"{study.testimonial}"</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Section */}
+        <section className="py-20 observe-animation opacity-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
+              <p className="text-xl text-gray-400">Start free, scale as you grow</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  name: "Starter",
+                  price: "Free",
+                  period: "forever",
+                  description: "Perfect for testing and personal use",
+                  features: [
+                    "5 videos per month",
+                    "Basic AI prompts",
+                    "720p quality",
+                    "Email sharing",
+                    "Community support"
+                  ],
+                  cta: "Start Free",
+                  popular: false
+                },
+                {
+                  name: "Professional",
+                  price: "$49",
+                  period: "per month",
+                  description: "For solopreneurs and small agencies",
+                  features: [
+                    "Unlimited videos",
+                    "All AI features",
+                    "1080p quality",
+                    "Advanced analytics",
+                    "Priority support",
+                    "Custom branding",
+                    "API access"
+                  ],
+                  cta: "Start 14-Day Trial",
+                  popular: true
+                },
+                {
+                  name: "Enterprise",
+                  price: "Custom",
+                  period: "contact sales",
+                  description: "For large teams and agencies",
+                  features: [
+                    "Everything in Pro",
+                    "White-label options",
+                    "Dedicated account manager",
+                    "Custom integrations",
+                    "SLA guarantees",
+                    "Training & onboarding",
+                    "Volume discounts"
+                  ],
+                  cta: "Contact Sales",
+                  popular: false
+                }
+              ].map((plan, index) => (
+                <div
+                  key={index}
+                  className={`relative bg-gray-800/40 backdrop-blur-sm border rounded-2xl p-8 hover:scale-105 transition-all duration-300 ${
+                    plan.popular ? 'border-blue-500 shadow-2xl shadow-blue-500/20' : 'border-gray-700 hover:border-blue-500/50'
+                  }`}
+                >
+                  {plan.popular && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-1 rounded-full text-sm font-bold">
+                      Most Popular
+                    </div>
+                  )}
+
+                  <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
+                  <div className="mb-4">
+                    <span className="text-4xl font-bold text-white">{plan.price}</span>
+                    {plan.price !== "Custom" && <span className="text-gray-500">/{plan.period}</span>}
+                  </div>
+                  <p className="text-gray-400 mb-6">{plan.description}</p>
+
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                        <svg className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={onGetStarted}
+                    className={`w-full py-3 rounded-lg font-bold transition-all duration-300 hover:scale-105 ${
+                      plan.popular
+                        ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white hover:from-blue-500 hover:to-green-500'
+                        : 'bg-gray-700 text-white hover:bg-gray-600'
+                    }`}
+                  >
+                    {plan.cta}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <p className="text-gray-400 mb-4">All plans include 30-day money-back guarantee</p>
+              <div className="flex items-center justify-center gap-8 text-sm text-gray-500">
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  No credit card required
+                </span>
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Cancel anytime
+                </span>
+                <span className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Free migration help
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Integration Partners */}
+        <section className="py-20 bg-gray-800/20 observe-animation opacity-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Integrates With Your Favorite Tools</h2>
+              <p className="text-xl text-gray-400">Connect seamlessly with 20+ platforms</p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+              {[
+                { name: "Gmail", category: "Email" },
+                { name: "Outlook", category: "Email" },
+                { name: "Salesforce", category: "CRM" },
+                { name: "HubSpot", category: "CRM" },
+                { name: "Zapier", category: "Automation" },
+                { name: "Make", category: "Automation" },
+                { name: "Slack", category: "Communication" },
+                { name: "LinkedIn", category: "Social" },
+                { name: "Calendly", category: "Scheduling" },
+                { name: "Zoom", category: "Video" },
+                { name: "Stripe", category: "Payments" },
+                { name: "Google Drive", category: "Storage" }
+              ].map((integration, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-800/40 backdrop-blur-sm border border-gray-700 rounded-xl p-6 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 group cursor-pointer"
+                >
+                  <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">📦</div>
+                  <h3 className="font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{integration.name}</h3>
+                  <p className="text-xs text-gray-500">{integration.category}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 text-center">
+              <button onClick={onGetStarted} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-green-600 text-white font-bold rounded-xl hover:from-blue-500 hover:to-green-500 transition-all duration-300 hover:scale-105">
+                See All Integrations →
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Security & Compliance */}
+        <section className="py-20 observe-animation opacity-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Enterprise-Grade Security</h2>
+              <p className="text-xl text-gray-400">Your data is protected with industry-leading security</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+              {[
+                { icon: "🔒", title: "SOC 2 Type II", description: "Independently audited security controls" },
+                { icon: "🛡️", title: "GDPR Compliant", description: "Full European data protection compliance" },
+                { icon: "🔐", title: "256-bit Encryption", description: "Bank-level encryption for all data" },
+                { icon: "🔑", title: "SSO & 2FA", description: "Enterprise authentication options" }
+              ].map((item, index) => (
+                <div key={index} className="bg-gray-800/40 backdrop-blur-sm border border-gray-700 rounded-xl p-6 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 text-center">
+                  <div className="text-5xl mb-4">{item.icon}</div>
+                  <h3 className="font-bold text-white mb-2">{item.title}</h3>
+                  <p className="text-sm text-gray-400">{item.description}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 backdrop-blur-sm border border-gray-700 rounded-2xl p-8">
+              <h3 className="text-2xl font-bold text-white mb-6">Security Features</h3>
+              <div className="grid md:grid-cols-2 gap-6">
+                {[
+                  "End-to-end encryption for all video content",
+                  "Regular third-party security audits",
+                  "99.9% uptime SLA with redundancy",
+                  "Automatic data backups every 24 hours",
+                  "Role-based access controls (RBAC)",
+                  "Detailed audit logs and monitoring",
+                  "DDoS protection and CDN security",
+                  "Compliance with HIPAA, CCPA, SOX"
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <svg className="w-6 h-6 text-green-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-300">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Comparison Table */}
+        <section className="py-20 bg-gray-800/20 observe-animation opacity-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">How We Compare</h2>
+              <p className="text-xl text-gray-400">See why professionals choose us</p>
+            </div>
+
+            <div className="bg-gray-800/40 backdrop-blur-sm border border-gray-700 rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-700">
+                      <th className="px-6 py-4 text-left text-sm font-bold text-gray-400">Feature</th>
+                      <th className="px-6 py-4 text-center text-sm font-bold text-white bg-blue-600/20">
+                        <div className="flex flex-col items-center">
+                          <span className="text-lg">AI Video Assistant</span>
+                          <span className="text-xs text-blue-400 mt-1">That's us!</span>
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-center text-sm font-bold text-gray-400">Competitor A</th>
+                      <th className="px-6 py-4 text-center text-sm font-bold text-gray-400">Competitor B</th>
+                      <th className="px-6 py-4 text-center text-sm font-bold text-gray-400">Manual Videos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { feature: "AI Video Generation", us: true, compA: false, compB: true, manual: false },
+                      { feature: "4-8 Second Creation", us: true, compA: false, compB: false, manual: false },
+                      { feature: "Unlimited Videos", us: true, compA: false, compB: true, manual: true },
+                      { feature: "Real-time Analytics", us: true, compA: true, compB: false, manual: false },
+                      { feature: "Email Integration", us: true, compA: true, compB: true, manual: false },
+                      { feature: "Multi-language Support", us: true, compA: false, compB: true, manual: false },
+                      { feature: "Custom Branding", us: true, compA: true, compB: false, manual: true },
+                      { feature: "API Access", us: true, compA: false, compB: false, manual: false },
+                      { feature: "Starting Price", us: "Free", compA: "$99/mo", compB: "$79/mo", manual: "$0" }
+                    ].map((row, index) => (
+                      <tr key={index} className="border-b border-gray-700/50 hover:bg-gray-700/20 transition-colors">
+                        <td className="px-6 py-4 text-sm text-gray-300 font-semibold">{row.feature}</td>
+                        <td className="px-6 py-4 text-center bg-blue-600/10">
+                          {typeof row.us === 'boolean' ? (
+                            row.us ? (
+                              <svg className="w-6 h-6 text-green-400 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-6 h-6 text-red-400 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                            )
+                          ) : (
+                            <span className="text-green-400 font-bold">{row.us}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {typeof row.compA === 'boolean' ? (
+                            row.compA ? (
+                              <svg className="w-6 h-6 text-green-400 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-6 h-6 text-red-400 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                            )
+                          ) : (
+                            <span className="text-gray-400">{row.compA}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {typeof row.compB === 'boolean' ? (
+                            row.compB ? (
+                              <svg className="w-6 h-6 text-green-400 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-6 h-6 text-red-400 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                            )
+                          ) : (
+                            <span className="text-gray-400">{row.compB}</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          {typeof row.manual === 'boolean' ? (
+                            row.manual ? (
+                              <svg className="w-6 h-6 text-green-400 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            ) : (
+                              <svg className="w-6 h-6 text-red-400 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                            )
+                          ) : (
+                            <span className="text-gray-400">{row.manual}</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <button onClick={onGetStarted} className="px-8 py-4 bg-gradient-to-r from-blue-600 to-green-600 text-white text-lg font-bold rounded-xl hover:from-blue-500 hover:to-green-500 transition-all duration-300 hover:scale-105">
+                Try The Best Solution Free →
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Resources Library */}
+        <section className="py-20 observe-animation opacity-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">Free Resources to Get You Started</h2>
+              <p className="text-xl text-gray-400">Download templates, guides, and frameworks</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                { title: "50+ Video Script Templates", type: "Templates", downloads: "8.2K", format: "PDF" },
+                { title: "Email Copywriting Masterclass", type: "Guide", downloads: "12.5K", format: "PDF" },
+                { title: "ROI Calculator Spreadsheet", type: "Tool", downloads: "5.7K", format: "XLSX" },
+                { title: "Prompt Engineering Guide", type: "E-book", downloads: "15.3K", format: "PDF" },
+                { title: "Sales Psychology Framework", type: "Framework", downloads: "9.1K", format: "PDF" },
+                { title: "Video Marketing Playbook", type: "Playbook", downloads: "11.8K", format: "PDF" }
+              ].map((resource, index) => (
+                <div key={index} className="bg-gray-800/40 backdrop-blur-sm border border-gray-700 rounded-xl p-6 hover:border-blue-500/50 transition-all duration-300 hover:scale-105 group">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="text-4xl">📄</div>
+                    <span className="px-2 py-1 bg-blue-600/20 text-blue-400 text-xs font-bold rounded">{resource.format}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">{resource.title}</h3>
+                  <p className="text-sm text-gray-400 mb-4">{resource.type}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">{resource.downloads} downloads</span>
+                    <button className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-500 transition-colors">
+                      Download
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Expert Quotes */}
+        <section className="py-20 bg-gray-800/20 observe-animation opacity-0">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">What Industry Experts Say</h2>
+              <p className="text-xl text-gray-400">Insights from thought leaders and researchers</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {[
+                {
+                  quote: "Video emails increase response rates by 300%. It's not optional anymore - it's essential for modern sales.",
+                  author: "Dr. Sarah Johnson",
+                  role: "Sales Psychology Researcher",
+                  company: "Stanford Business School"
+                },
+                {
+                  quote: "AI-powered personalization at scale is the biggest unlock for agencies in the past decade. The ROI is undeniable.",
+                  author: "Michael Chen",
+                  role: "Marketing Strategy Consultant",
+                  company: "Forbes Council Member"
+                },
+                {
+                  quote: "Executive candidates using video applications are 4X more likely to get interviews. It's a game-changer for career advancement.",
+                  author: "Emma Rodriguez",
+                  role: "Executive Recruiter",
+                  company: "Fortune 500 Talent Advisor"
+                },
+                {
+                  quote: "The data shows video outreach reduces sales cycles by 45%. Every sales team should be using this technology.",
+                  author: "David Park",
+                  role: "B2B Sales Analyst",
+                  company: "Gartner Research"
+                }
+              ].map((expert, index) => (
+                <div key={index} className="bg-gray-800/40 backdrop-blur-sm border border-gray-700 rounded-xl p-8 hover:border-blue-500/50 transition-all duration-300">
+                  <div className="text-5xl mb-4">💬</div>
+                  <p className="text-lg text-gray-300 mb-6 italic">"{expert.quote}"</p>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-green-600 rounded-full flex items-center justify-center text-xl font-bold">
+                      {expert.author.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-white">{expert.author}</p>
+                      <p className="text-sm text-gray-400">{expert.role}</p>
+                      <p className="text-sm text-gray-500">{expert.company}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Footer */}
         <footer className="border-t border-gray-800 py-12 bg-gray-900/50 backdrop-blur-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
