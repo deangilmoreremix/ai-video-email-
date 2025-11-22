@@ -5,6 +5,9 @@ import { uploadVideo, canUploadVideo, MAX_VIDEOS_PER_USER } from '../services/vi
 import { triggerEmailSentEvent } from '../services/zapierWebhook';
 import { AIEmailEnhancer } from './AIEmailEnhancer';
 import { PersonalizedEmail } from '../services/geminiService';
+import { ContactManager } from './ContactManager';
+import { QRCodeGenerator } from './QRCodeGenerator';
+import { Contact } from '../services/contactService';
 
 interface EmailComposerProps {
     personalVideoBlob: Blob;
@@ -24,6 +27,8 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
     const [error, setError] = useState<string | null>(null);
     const [videoSaved, setVideoSaved] = useState(false);
     const [personalizedContent, setPersonalizedContent] = useState<PersonalizedEmail | null>(null);
+    const [showContactManager, setShowContactManager] = useState(false);
+    const [showQRCode, setShowQRCode] = useState(false);
 
     useEffect(() => {
         const url = URL.createObjectURL(personalVideoBlob);
@@ -240,21 +245,29 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
                     </div>
                 )}
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <input
-                        type="email"
-                        placeholder="Recipient's Email"
-                        value={recipient}
-                        onChange={e => setRecipient(e.target.value)}
-                        className="bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"
-                        aria-label="Recipient's Email Address"
-                    />
+                <div className="space-y-2">
+                    <div className="flex gap-2">
+                        <input
+                            type="email"
+                            placeholder="Recipient's Email"
+                            value={recipient}
+                            onChange={e => setRecipient(e.target.value)}
+                            className="flex-1 bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"
+                            aria-label="Recipient's Email Address"
+                        />
+                        <button
+                            onClick={() => setShowContactManager(true)}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                        >
+                            Contacts
+                        </button>
+                    </div>
                     <input
                         type="text"
                         placeholder="Subject"
                         value={subject}
                         onChange={e => setSubject(e.target.value)}
-                        className="bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"
+                        className="w-full bg-gray-900 p-2 rounded-lg border border-gray-600 focus:ring-yellow-500"
                         aria-label="Email Subject"
                     />
                 </div>
@@ -267,13 +280,20 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
                         Back to Editor
                     </button>
                     <div className="flex gap-2">
-                        <button 
-                            onClick={handleCopyShareLink} 
-                            className="p-3 bg-gray-700 rounded-lg hover:bg-gray-600" 
+                        <button
+                            onClick={handleCopyShareLink}
+                            className="p-3 bg-gray-700 rounded-lg hover:bg-gray-600"
                             title="Copy Shareable Link (AI Scenes Only)"
                             aria-label="Copy shareable link for AI scenes"
                         >
                            <ShareIcon className="w-5 h-5"/>
+                        </button>
+                        <button
+                            onClick={() => setShowQRCode(true)}
+                            className="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600"
+                            title="Generate QR Code"
+                        >
+                           QR Code
                         </button>
                         <button
                             onClick={handleSendEmail}
@@ -290,13 +310,33 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
 
             {/* Copy Confirmation Toast */}
             {showCopyToast && (
-                <div 
+                <div
                     className="fixed bottom-10 right-10 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2"
                     role="status"
                     aria-live="polite"
                 >
                     <CopyIcon className="w-5 h-5" />
                     Link copied to clipboard!
+                </div>
+            )}
+
+            {showContactManager && (
+                <ContactManager
+                    onClose={() => setShowContactManager(false)}
+                    onSelectContact={(contact: Contact) => {
+                        setRecipient(contact.email);
+                        setShowContactManager(false);
+                    }}
+                />
+            )}
+
+            {showQRCode && videoUrl && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <QRCodeGenerator
+                        url={videoUrl}
+                        title="Scan to View Video"
+                        onClose={() => setShowQRCode(false)}
+                    />
                 </div>
             )}
         </div>

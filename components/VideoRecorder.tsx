@@ -5,6 +5,8 @@ import {
     RecordIcon, StopIcon, TrashIcon, SparklesIcon, DropletIcon, ImageIcon, ScrollIcon,
     FaceSmileIcon, HandIcon, CaptionsIcon, PartyHatIcon, SmoothIcon
 } from './icons';
+import { applyNoiseCancellation, isNoiseCancellationSupported, cleanupNoiseCancellation } from '../services/noiseCancellation';
+import { applyBackgroundEffect, loadBackgroundRemovalModel } from '../services/backgroundRemoval';
 
 declare const window: any;
 
@@ -41,12 +43,14 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     const [isEffectsPanelOpen, setIsEffectsPanelOpen] = useState(false);
     const [isArPanelOpen, setIsArPanelOpen] = useState(false);
     
-    const [backgroundEffect, setBackgroundEffect] = useState<'none' | 'blur' | 'image'>('none');
+    const [backgroundEffect, setBackgroundEffect] = useState<'none' | 'blur' | 'image' | 'remove'>('none');
     const [virtualBgImage, setVirtualBgImage] = useState<HTMLImageElement | null>(null);
     const [arEffect, setArEffect] = useState<'none' | 'glasses' | 'hat' | 'nose' | 'smoothing'>('none');
     const [isGestureControlEnabled, setIsGestureControlEnabled] = useState(false);
     const [isCaptionsEnabled, setIsCaptionsEnabled] = useState(false);
     const [liveCaption, setLiveCaption] = useState('');
+    const [isNoiseCancelEnabled, setIsNoiseCancelEnabled] = useState(false);
+    const [noiseCancelSupported, setNoiseCancelSupported] = useState(false);
 
     const [isTeleprompterVisible, setIsTeleprompterVisible] = useState(false);
     const [teleprompterSpeed, setTeleprompterSpeed] = useState(1);
@@ -87,11 +91,16 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     }, [takes]);
 
     useEffect(() => {
+        setNoiseCancelSupported(isNoiseCancellationSupported());
+    }, []);
+
+    useEffect(() => {
         return () => {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
             stream?.getTracks().forEach(track => track.stop());
+            cleanupNoiseCancellation();
         };
     }, [stream]);
     
@@ -352,25 +361,42 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
             }
         };
 
-        const drawBaseLayer = new Promise<void>((resolve) => {
-            if (backgroundEffect !== 'none' && mediaPipeEffects?.segmenter) {
-                mediaPipeEffects.segmenter.segmentForVideo(video, startTimeMs, (result: any) => {
-                    ctx.save();
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    if (backgroundEffect === 'blur') {
-                        ctx.filter = 'blur(10px)';
+        const drawBaseLayer = new Promise<void>(async (resolve) => {
+            if (backgroundEffect !== 'none') {
+                if (backgroundEffect === 'remove') {
+                    try {
+                        await applyBackgroundEffect(video, canvas, 'remove', virtualBgImage || undefined);
+                    } catch (error) {
+                        console.error('Background removal error:', error);
                         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        ctx.filter = 'none';
-                    } else if (backgroundEffect === 'image' && virtualBgImage) {
-                        ctx.drawImage(virtualBgImage, 0, 0, canvas.width, canvas.height);
                     }
-                    ctx.globalCompositeOperation = 'destination-out';
-                    ctx.drawImage(result.categoryMask, 0, 0, canvas.width, canvas.height);
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    ctx.restore();
                     resolve();
-                });
+                    return;
+                }
+
+                if (mediaPipeEffects?.segmenter) {
+                    mediaPipeEffects.segmenter.segmentForVideo(video, startTimeMs, (result: any) => {
+                        ctx.save();
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        if (backgroundEffect === 'blur') {
+                            ctx.filter = 'blur(10px)';
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            ctx.filter = 'none';
+                        } else if (backgroundEffect === 'image' && virtualBgImage) {
+                            ctx.drawImage(virtualBgImage, 0, 0, canvas.width, canvas.height);
+                        }
+                        ctx.globalCompositeOperation = 'destination-out';
+                        ctx.drawImage(result.categoryMask, 0, 0, canvas.width, canvas.height);
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        ctx.restore();
+                        resolve();
+                    });
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    resolve();
+                }
             } else {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -479,7 +505,16 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
                 audio: microphoneId ? { deviceId: { exact: microphoneId } } : true
             };
 
-            const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+            let mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+            if (isNoiseCancelEnabled && noiseCancelSupported) {
+                try {
+                    mediaStream = await applyNoiseCancellation(mediaStream);
+                } catch (error) {
+                    console.error('Failed to apply noise cancellation:', error);
+                }
+            }
+
             setStream(mediaStream);
             setupAudioLevelMonitoring(mediaStream);
 
@@ -854,12 +889,24 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
                  {isEffectsPanelOpen && (
                      <div id="effects-panel" className="bg-gray-900/50 p-3 rounded-lg space-y-2" role="region" aria-label="Background effects panel">
                         <h4 className="font-semibold text-center">Background Effects</h4>
-                        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="background-effects-heading">
-                            <button id="background-effects-heading" onClick={() => setBackgroundEffect('none')} className={`p-2 rounded ${backgroundEffect === 'none' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'none'} role="radio">None</button>
-                            <button onClick={() => setBackgroundEffect('blur')} className={`p-2 rounded ${backgroundEffect === 'blur' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'blur'} role="radio">Blur</button>
-                             <label className={`p-2 rounded text-center cursor-pointer ${backgroundEffect === 'image' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-label="Upload background image">
+                        <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-labelledby="background-effects-heading">
+                            <button id="background-effects-heading" onClick={() => setBackgroundEffect('none')} className={`p-2 rounded text-sm ${backgroundEffect === 'none' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'none'} role="radio">None</button>
+                            <button onClick={() => setBackgroundEffect('blur')} className={`p-2 rounded text-sm ${backgroundEffect === 'blur' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'blur'} role="radio">Blur</button>
+                            <button onClick={async () => { await loadBackgroundRemovalModel(); setBackgroundEffect('remove'); }} className={`p-2 rounded text-sm ${backgroundEffect === 'remove' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'remove'} role="radio">Remove</button>
+                             <label className={`p-2 rounded text-sm text-center cursor-pointer ${backgroundEffect === 'image' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-label="Upload background image">
                                 Image <input type="file" accept="image/*" onChange={handleBgImageUpload} className="hidden" />
                              </label>
+                        </div>
+                        <div className="mt-2">
+                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={isNoiseCancelEnabled}
+                                    onChange={(e) => setIsNoiseCancelEnabled(e.target.checked)}
+                                    className="rounded"
+                                />
+                                <span>Noise Cancellation {!noiseCancelSupported && '(Not Supported)'}</span>
+                            </label>
                         </div>
                      </div>
                  )}

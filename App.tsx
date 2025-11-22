@@ -14,10 +14,12 @@ import { AdvancedAIPanel } from './components/AdvancedAIPanel';
 import { ProgressIndicator } from './components/ProgressIndicator';
 import { AIAssistant } from './components/AIAssistant';
 import { SmartTrigger, useSmartTrigger } from './components/SmartTrigger';
+import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { AppContext, AppContextType } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { triggerAIScenesGeneratedEvent } from './services/zapierWebhook';
+import { initializeDefaultShortcuts, cleanupShortcuts } from './services/keyboardShortcuts';
 
 export type AppState = 'landing' | 'main' | 'editing' | 'composer';
 
@@ -60,6 +62,7 @@ const App: React.FC = () => {
     const [hasTeamApproval, setHasTeamApproval] = useState(false);
     const [hasEngagementPrediction, setHasEngagementPrediction] = useState(false);
     const { trigger, showTrigger, hideTrigger } = useSmartTrigger();
+    const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
 
     const debounce = <F extends (...args: any[]) => any>(func: F, waitFor: number) => {
       let timeout: number;
@@ -170,6 +173,11 @@ const App: React.FC = () => {
 
         init();
 
+        initializeDefaultShortcuts({
+            onHelp: () => setShowKeyboardShortcuts(true),
+            onSave: () => saveProject(script, visualStyle, takes, aiScenes, selectedTake?.id, editedBlob),
+        });
+
         // Cleanup logic
         return () => {
             const { mediaPipeEffects } = librariesRef.current;
@@ -178,6 +186,7 @@ const App: React.FC = () => {
                 mediaPipeEffects.faceMesh?.close();
                 mediaPipeEffects.handLandmarker?.close();
             }
+            cleanupShortcuts();
         };
     }, []); // This effect should only run once on mount.
 
@@ -408,6 +417,7 @@ const App: React.FC = () => {
                     onEditVideo={handleEditVideoFromLibrary}
                 />}
                 {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+                {showKeyboardShortcuts && <KeyboardShortcutsHelp onClose={() => setShowKeyboardShortcuts(false)} />}
 
                 {appState !== 'landing' && (
                     <>
