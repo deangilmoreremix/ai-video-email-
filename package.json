@@ -11,8 +11,18 @@
   "dependencies": {
     "@google/genai": "^1.25.0",
     "@supabase/supabase-js": "^2.83.0",
+    "@tensorflow-models/body-pix": "^2.2.1",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@timephy/rnnoise-wasm": "^1.0.0",
+    "chart.js": "^4.5.1",
+    "face-api.js": "^0.22.2",
+    "mousetrap": "^1.6.5",
+    "papaparse": "^5.5.3",
+    "qrcode": "^1.5.4",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "tesseract.js": "^6.0.1",
+    "video.js": "^8.23.4"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
