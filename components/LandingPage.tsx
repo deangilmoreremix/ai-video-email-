@@ -1202,6 +1202,48 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                   ],
                   testimonial: "We closed more deals in Q1 using AI video than all of last year combined.",
                   avatar: "👨‍💻"
+                },
+                {
+                  company: "PropertyPro Realty",
+                  industry: "Real Estate & Property Sales",
+                  challenge: "Listings getting lost in crowded market with 200+ competitors per area",
+                  solution: "Created AI-powered personalized video tours for every property listing",
+                  results: [
+                    { metric: "Listing Views", before: "320/listing", after: "1,840/listing", increase: "+475%" },
+                    { metric: "Showing Requests", before: "4.2/listing", after: "18.7/listing", increase: "+345%" },
+                    { metric: "Days on Market", before: "45 days", after: "18 days", increase: "-60%" },
+                    { metric: "Sale Price vs Ask", before: "97%", after: "102%", increase: "+5%" }
+                  ],
+                  testimonial: "Game-changer for luxury real estate. Our listings now sell 60% faster and above asking price. Buyers are making offers before even visiting the property.",
+                  avatar: "🏡"
+                },
+                {
+                  company: "HealthTech Innovations",
+                  industry: "Healthcare Technology B2B SaaS",
+                  challenge: "Complex healthcare solutions requiring extensive education before purchase",
+                  solution: "Deployed personalized AI video explainers for each prospect's specific use case",
+                  results: [
+                    { metric: "Sales Cycle", before: "92 days", after: "41 days", increase: "-55%" },
+                    { metric: "Demo-to-Close Rate", before: "8.2%", after: "24.7%", increase: "+201%" },
+                    { metric: "Product Comprehension", before: "4.2/10", after: "8.9/10", increase: "+112%" },
+                    { metric: "Deal Size", before: "$48K", after: "$67K", increase: "+40%" }
+                  ],
+                  testimonial: "Our sales team went from spending 60% of their time explaining our platform to focusing on relationship-building. The video explainers handle the education. ROI was positive in month one.",
+                  avatar: "🏥"
+                },
+                {
+                  company: "ConsultPro Partners",
+                  industry: "Management Consulting",
+                  challenge: "Commoditized services making it impossible to stand out in RFP processes",
+                  solution: "Transformed proposal process with personalized video presentations",
+                  results: [
+                    { metric: "RFP Response Rate", before: "5%", after: "34%", increase: "+580%" },
+                    { metric: "Win Rate", before: "9%", after: "28%", increase: "+211%" },
+                    { metric: "Average Deal Size", before: "$85K", after: "$142K", increase: "+67%" },
+                    { metric: "Proposal Time", before: "42 hours", after: "8 hours", increase: "-81%" }
+                  ],
+                  testimonial: "We went from the underdog to the preferred vendor. Decision-makers told us our video proposals were the most impressive they'd ever seen. We're now competing head-to-head with firms 10x our size and winning.",
+                  avatar: "💼"
                 }
               ].map((study, index) => (
                 <div key={index} className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-sm border border-gray-700 rounded-2xl p-8 hover:border-blue-500/50 transition-all duration-500">
