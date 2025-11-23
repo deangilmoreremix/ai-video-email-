@@ -1,5 +1,6 @@
 
 import { GoogleGenAI, Modality, Type, GenerateContentResponse, FunctionDeclaration, LiveServerMessage } from "@google/genai";
+import { apiQueue } from './apiQueueService';
 
 declare const window: any;
 

@@ -16,6 +16,7 @@ import { ProgressIndicator } from './components/ProgressIndicator';
 import { AIAssistant } from './components/AIAssistant';
 import { SmartTrigger, useSmartTrigger } from './components/SmartTrigger';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
+import { RateLimitNotification } from './components/RateLimitNotification';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { AppContext, AppContextType } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -422,6 +423,7 @@ const App: React.FC = () => {
                 {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
                 {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
                 {showKeyboardShortcuts && <KeyboardShortcutsHelp onClose={() => setShowKeyboardShortcuts(false)} />}
+                <RateLimitNotification />
 
                 {appState !== 'landing' && (
                     <>

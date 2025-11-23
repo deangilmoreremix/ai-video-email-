@@ -4,9 +4,10 @@ import { UserManagement } from './UserManagement';
 import { AnalyticsDashboard } from './AnalyticsDashboard';
 import { SecurityMonitoring } from './SecurityMonitoring';
 import { SystemSettingsPanel } from './SystemSettingsPanel';
+import { APIUsageDashboard } from './APIUsageDashboard';
 import { Loader } from '../Loader';
 
-type AdminTab = 'overview' | 'users' | 'analytics' | 'security' | 'settings';
+type AdminTab = 'overview' | 'users' | 'analytics' | 'security' | 'settings' | 'api';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -47,6 +48,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     { id: 'overview', label: 'Overview', icon: '📊' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'analytics', label: 'Analytics', icon: '📈' },
+    { id: 'api', label: 'API Usage', icon: '⚡' },
     { id: 'security', label: 'Security', icon: '🔒' },
     { id: 'settings', label: 'Settings', icon: '⚙️' }
   ];
@@ -100,6 +102,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           {activeTab === 'overview' && <OverviewDashboard />}
           {activeTab === 'users' && <UserManagement />}
           {activeTab === 'analytics' && <AnalyticsDashboard />}
+          {activeTab === 'api' && <APIUsageDashboard />}
           {activeTab === 'security' && <SecurityMonitoring />}
           {activeTab === 'settings' && <SystemSettingsPanel />}
         </div>
