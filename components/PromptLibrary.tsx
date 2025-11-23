@@ -58,12 +58,26 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ onSelectPrompt, on
         const data = await getPublicPrompts(selectedCategory !== 'all' ? selectedCategory : undefined);
         console.log('Public prompts loaded:', data.length);
         setPublicPrompts(data);
-      } else if (activeTab === 'suggestions' && selectedCategory !== 'all') {
-        const data = await generatePromptSuggestions(selectedCategory);
-        setSuggestions(data);
       }
     } catch (error) {
       console.error('Failed to load data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadSuggestions = async () => {
+    if (selectedCategory === 'all') {
+      alert('Please select a specific category to generate suggestions');
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await generatePromptSuggestions(selectedCategory);
+      setSuggestions(data);
+    } catch (error) {
+      console.error('Failed to load suggestions:', error);
+      alert('Failed to generate suggestions. Please check your API key and try again.');
     } finally {
       setLoading(false);
     }
@@ -332,17 +346,38 @@ export const PromptLibrary: React.FC<PromptLibraryProps> = ({ onSelectPrompt, on
               {activeTab === 'suggestions' && (
                 <div className="space-y-3">
                   {selectedCategory === 'all' ? (
-                    <p className="text-center text-gray-500 py-8">Select a category to see examples</p>
+                    <p className="text-center text-gray-500 py-8">Select a category to generate AI suggestions</p>
                   ) : suggestions.length === 0 ? (
-                    <p className="text-center text-gray-500 py-8">No suggestions available</p>
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 mb-4">Click the button below to generate AI-powered prompt suggestions</p>
+                      <button
+                        onClick={loadSuggestions}
+                        disabled={loading}
+                        className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 font-semibold rounded-lg hover:shadow-lg hover:shadow-yellow-500/30 disabled:opacity-50 transition-all"
+                      >
+                        {loading ? 'Generating...' : 'Generate Suggestions'}
+                      </button>
+                    </div>
                   ) : (
-                    suggestions.map((item, index) => (
-                      <SuggestionCard
-                        key={index}
-                        item={item}
-                        onUse={() => handleUsePrompt(item.prompt)}
-                      />
-                    ))
+                    <>
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-sm text-gray-400">{suggestions.length} suggestions generated</p>
+                        <button
+                          onClick={loadSuggestions}
+                          disabled={loading}
+                          className="text-sm px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 disabled:opacity-50"
+                        >
+                          {loading ? '...' : 'Regenerate'}
+                        </button>
+                      </div>
+                      {suggestions.map((item, index) => (
+                        <SuggestionCard
+                          key={index}
+                          item={item}
+                          onUse={() => handleUsePrompt(item.prompt)}
+                        />
+                      ))}
+                    </>
                   )}
                 </div>
               )}

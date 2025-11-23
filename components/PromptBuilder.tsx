@@ -43,15 +43,6 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
   const [variations, setVariations] = useState<PromptVariation[]>([]);
   const [showComparison, setShowComparison] = useState(false);
 
-  useEffect(() => {
-    if (prompt.length > 10 && !isAnalyzing) {
-      const timer = setTimeout(() => {
-        handleAnalyze();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [prompt, isAnalyzing]);
-
   const handleAnalyze = async () => {
     if (!prompt.trim() || prompt.length < 10) return;
 
