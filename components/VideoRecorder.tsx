@@ -25,11 +25,12 @@ interface VideoRecorderProps {
     setTakes: React.Dispatch<React.SetStateAction<Take[]>>;
     onSelectTake: (take: Take) => void;
     onEditTake: (take: Take) => void;
+    onCreateCampaign?: (take: Take) => void;
     selectedTakeId?: string;
     onError: (message: string) => void; // New prop for error handling
 }
 
-export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, setTakes, onSelectTake, onEditTake, selectedTakeId, onError }) => {
+export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, setTakes, onSelectTake, onEditTake, onCreateCampaign, selectedTakeId, onError }) => {
     const { mediaPipeEffects, getGoogleGenAIInstance } = useAppLibs();
     const [isRecording, setIsRecording] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
@@ -1010,6 +1011,16 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
                                     <div className="flex flex-col gap-2">
                                         <button onClick={() => onSelectTake(take)} disabled={take.status !== 'complete'} className="px-3 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50" aria-label={`Use Take ${takes.findIndex(t => t.id === take.id) + 1}`}>Use</button>
                                         <button onClick={() => onEditTake(take)} disabled={take.status !== 'complete'} className="px-3 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50" aria-label={`Edit Take ${takes.findIndex(t => t.id === take.id) + 1}`}>Edit</button>
+                                        {onCreateCampaign && (
+                                            <button
+                                                onClick={() => onCreateCampaign(take)}
+                                                disabled={take.status !== 'complete'}
+                                                className="px-3 py-1 text-xs bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 font-medium"
+                                                aria-label={`Create Campaign with Take ${takes.findIndex(t => t.id === take.id) + 1}`}
+                                            >
+                                                🚀 Campaign
+                                            </button>
+                                        )}
                                         <button onClick={() => handleDeleteTake(take.id)} className="text-gray-400 hover:text-red-400" aria-label={`Delete Take ${takes.findIndex(t => t.id === take.id) + 1}`}><TrashIcon className="w-4 h-4 mx-auto"/></button>
                                     </div>
                                 </div>

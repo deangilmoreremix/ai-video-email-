@@ -10,12 +10,13 @@ interface VideoEditorProps {
     onFinishEditing: (editedBlob: Blob) => void;
     onCancel: () => void;
     onError: (message: string) => void;
+    onCreateCampaign?: (editedBlob: Blob) => void;
     editingFromLibrary?: boolean;
 }
 
 type Cut = { id: string; start: number; end: number; type: 'filler' | 'silence' | 'manual'; text?: string };
 
-export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing, onCancel, onError, editingFromLibrary = false }) => {
+export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing, onCancel, onError, onCreateCampaign, editingFromLibrary = false }) => {
     const { ffmpeg, getGoogleGenAIInstance } = useAppLibs();
     const videoRef = useRef<HTMLVideoElement>(null);
     const waveformRef = useRef<HTMLCanvasElement>(null);
@@ -622,6 +623,21 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ take, onFinishEditing,
                 <button onClick={() => handleSave(false)} disabled={isSaving || !ffmpeg} className="px-6 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 disabled:opacity-50" aria-label={isSaving ? 'Processing video' : 'Apply edits and export video'}>
                     {isSaving ? 'Processing...' : editingFromLibrary ? 'Apply Edits' : 'Apply Edits & Export'}
                 </button>
+                {onCreateCampaign && !editingFromLibrary && (
+                    <button
+                        onClick={async () => {
+                            const blob = await handleSave(false);
+                            if (blob && onCreateCampaign) {
+                                onCreateCampaign(blob);
+                            }
+                        }}
+                        disabled={isSaving || !ffmpeg}
+                        className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                        aria-label="Create campaign with edited video"
+                    >
+                        🚀 Create Campaign
+                    </button>
+                )}
              </div>
         </div>
     );

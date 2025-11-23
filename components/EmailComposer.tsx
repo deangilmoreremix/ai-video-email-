@@ -15,9 +15,10 @@ interface EmailComposerProps {
     script: string;
     transcript: string | null;
     onBack: () => void;
+    onCreateCampaign?: () => void;
 }
 
-export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob, aiSceneUrls, script, transcript, onBack }) => {
+export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob, aiSceneUrls, script, transcript, onBack, onCreateCampaign }) => {
     const [videoUrl, setVideoUrl] = useState('');
     const [recipient, setRecipient] = useState('');
     const [subject, setSubject] = useState('A video message for you');
@@ -272,13 +273,24 @@ export const EmailComposer: React.FC<EmailComposerProps> = ({ personalVideoBlob,
                     />
                 </div>
                 <div className="flex justify-between items-center gap-4">
-                    <button 
-                        onClick={onBack} 
-                        className="px-6 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
-                        aria-label="Back to video editor"
-                    >
-                        Back to Editor
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={onBack}
+                            className="px-6 py-2 bg-gray-600 rounded-lg hover:bg-gray-500"
+                            aria-label="Back to video editor"
+                        >
+                            Back to Editor
+                        </button>
+                        {onCreateCampaign && (
+                            <button
+                                onClick={onCreateCampaign}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                                aria-label="Create campaign to scale this video"
+                            >
+                                🚀 Scale with Campaign
+                            </button>
+                        )}
+                    </div>
                     <div className="flex gap-2">
                         <button
                             onClick={handleCopyShareLink}

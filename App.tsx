@@ -263,6 +263,107 @@ const App: React.FC = () => {
         }
     };
 
+    const handleCreateCampaignFromTake = async (take: Take) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                setError('Please sign in to create campaigns');
+                return;
+            }
+
+            const videoBlob = take.blob;
+            const videoName = `Campaign Video ${new Date().toLocaleDateString()}`;
+
+            const fileName = `${user.id}/${Date.now()}_campaign_${videoName.replace(/\s+/g, '_')}.webm`;
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('videos')
+                .upload(fileName, videoBlob, {
+                    contentType: 'video/webm',
+                    upsert: false
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('videos')
+                .getPublicUrl(fileName);
+
+            const { data: videoData, error: videoError } = await supabase
+                .from('user_videos')
+                .insert({
+                    user_id: user.id,
+                    video_name: videoName,
+                    video_url: publicUrl,
+                    script: script || take.transcript || '',
+                    transcript: take.transcript
+                })
+                .select()
+                .single();
+
+            if (videoError) throw videoError;
+
+            setExistingVideos(prev => [videoData, ...prev]);
+            setAppState('campaign-creator');
+            loadExistingVideos();
+
+            showTrigger(
+                'Video Saved!',
+                'Your video has been saved to the library. Now create your campaign to personalize it for multiple recipients.',
+                [
+                    { label: 'Continue', action: () => {}, primary: true }
+                ],
+                'success'
+            );
+        } catch (err: any) {
+            setError(`Failed to save video: ${err.message}`);
+        }
+    };
+
+    const handleCreateCampaignFromBlob = async (blob: Blob) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                setError('Please sign in to create campaigns');
+                return;
+            }
+
+            const videoName = `Edited Campaign Video ${new Date().toLocaleDateString()}`;
+            const fileName = `${user.id}/${Date.now()}_edited_campaign_${videoName.replace(/\s+/g, '_')}.mp4`;
+
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('videos')
+                .upload(fileName, blob, {
+                    contentType: 'video/mp4',
+                    upsert: false
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('videos')
+                .getPublicUrl(fileName);
+
+            const { data: videoData, error: videoError } = await supabase
+                .from('user_videos')
+                .insert({
+                    user_id: user.id,
+                    video_name: videoName,
+                    video_url: publicUrl,
+                    script: script || '',
+                })
+                .select()
+                .single();
+
+            if (videoError) throw videoError;
+
+            setExistingVideos(prev => [videoData, ...prev]);
+            setAppState('campaign-creator');
+            loadExistingVideos();
+        } catch (err: any) {
+            setError(`Failed to save edited video: ${err.message}`);
+        }
+    };
+
     const handleSelectTake = (take: Take) => {
         setSelectedTake(take);
         setAppState('main');
@@ -270,10 +371,10 @@ const App: React.FC = () => {
         if (takes.filter(t => t.status === 'complete').length === 1) {
             showTrigger(
                 'Recording Complete!',
-                'Great job! Now let\'s optimize your video for maximum engagement.',
+                'Great job! Ready to scale this video? Create a campaign to personalize it for multiple recipients at once.',
                 [
-                    { label: 'Skip', action: () => {} },
-                    { label: 'Analyze Video', action: () => {}, primary: true }
+                    { label: 'Optimize First', action: () => {} },
+                    { label: 'Create Campaign', action: () => handleCreateCampaignFromTake(take), primary: true }
                 ],
                 'success'
             );
@@ -394,6 +495,7 @@ const App: React.FC = () => {
                         setEditingFromLibrary(false);
                     }}
                     onError={handleGlobalError}
+                    onCreateCampaign={handleCreateCampaignFromBlob}
                     editingFromLibrary={editingFromLibrary}
                 />;
             case 'composer':
@@ -407,6 +509,7 @@ const App: React.FC = () => {
                     script={script}
                     transcript={selectedTake.transcript}
                     onBack={() => setAppState('main')}
+                    onCreateCampaign={() => handleCreateCampaignFromBlob(editedBlob || selectedTake.blob)}
                  />
             case 'main':
             default:
@@ -429,6 +532,7 @@ const App: React.FC = () => {
                                 setTakes={setTakes}
                                 onSelectTake={handleSelectTake}
                                 onEditTake={handleEditVideo}
+                                onCreateCampaign={handleCreateCampaignFromTake}
                                 selectedTakeId={selectedTake?.id}
                                 onError={handleGlobalError}
                             />
