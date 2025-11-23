@@ -115,11 +115,13 @@ Make the improved prompt detailed enough to generate an engaging 60-90 second vi
     });
 
     if (!response || !response.text) {
+      console.error('Invalid response structure:', response);
       throw new Error('Invalid response from Gemini API');
     }
 
     const responseText = response.text.trim();
     if (!responseText) {
+      console.error('Empty response text');
       throw new Error('Empty response from Gemini API');
     }
 
@@ -131,17 +133,28 @@ Make the improved prompt detailed enough to generate an engaging 60-90 second vi
       throw new Error('Failed to parse API response. Please try again.');
     }
 
-    if (!result.improvedPrompt || !Array.isArray(result.improvements)) {
+    console.log('Parsed result:', result);
+
+    if (!result || typeof result !== 'object') {
+      console.error('Result is not an object:', result);
       throw new Error('Invalid response format from API');
     }
 
+    if (!result.improvedPrompt) {
+      console.error('Missing improvedPrompt in result:', result);
+      throw new Error('API did not return an improved prompt. Please try again.');
+    }
+
+    const improvements = Array.isArray(result.improvements) ? result.improvements :
+                        (result.improvements ? [String(result.improvements)] : ['Prompt enhanced']);
+
     return {
       originalPrompt,
-      improvedPrompt: result.improvedPrompt || originalPrompt,
-      suggestions: result.suggestions || [],
-      qualityScore: result.qualityScore || 50,
-      missingElements: result.missingElements || [],
-      improvements: result.improvements || []
+      improvedPrompt: result.improvedPrompt,
+      suggestions: Array.isArray(result.suggestions) ? result.suggestions : [],
+      qualityScore: typeof result.qualityScore === 'number' ? result.qualityScore : 75,
+      missingElements: Array.isArray(result.missingElements) ? result.missingElements : [],
+      improvements: improvements
     };
   } catch (error: any) {
     console.error('Error improving prompt:', error);
