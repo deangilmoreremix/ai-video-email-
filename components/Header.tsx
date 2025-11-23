@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { VideoIcon } from './icons';
 import { useAuth } from '../contexts/AuthContext';
+import { checkIsSuperAdmin } from '../services/adminService';
 
 interface HeaderProps {
     onNewProject: () => void;
     onOpenSettings: () => void;
     onOpenVideoLibrary: () => void;
     onOpenAuth: () => void;
+    onOpenAdmin?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, onOpenVideoLibrary, onOpenAuth }) => {
+export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, onOpenVideoLibrary, onOpenAuth, onOpenAdmin }) => {
     const { user, signOut } = useAuth();
     const [scrolled, setScrolled] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -22,6 +25,18 @@ export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, on
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    useEffect(() => {
+        const checkAdmin = async () => {
+            if (user) {
+                const adminStatus = await checkIsSuperAdmin();
+                setIsAdmin(adminStatus);
+            } else {
+                setIsAdmin(false);
+            }
+        };
+        checkAdmin();
+    }, [user]);
 
     return (
         <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
@@ -75,6 +90,14 @@ export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, on
                                     label="Settings"
                                     variant="secondary"
                                 />
+                                {isAdmin && onOpenAdmin && (
+                                    <NavButton
+                                        onClick={onOpenAdmin}
+                                        icon="🔐"
+                                        label="Admin"
+                                        variant="admin"
+                                    />
+                                )}
                                 <button
                                     onClick={signOut}
                                     className="px-4 py-2 text-sm bg-red-600/20 backdrop-blur-sm border border-red-500/30 text-red-400 font-semibold rounded-lg hover:bg-red-600/30 hover:border-red-500/50 transition-all duration-300 hover:scale-105 active:scale-95"
@@ -134,6 +157,13 @@ export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, on
                                     icon="⚙️"
                                     label="Settings"
                                 />
+                                {isAdmin && onOpenAdmin && (
+                                    <MobileNavButton
+                                        onClick={() => { onOpenAdmin(); setShowMenu(false); }}
+                                        icon="🔐"
+                                        label="Admin Panel"
+                                    />
+                                )}
                                 <button
                                     onClick={() => { signOut(); setShowMenu(false); }}
                                     className="w-full px-4 py-3 text-left bg-red-600/20 border border-red-500/30 text-red-400 font-semibold rounded-lg hover:bg-red-600/30 transition-all duration-300"
@@ -165,13 +195,15 @@ const NavButton: React.FC<{
     onClick: () => void;
     icon: string;
     label: string;
-    variant: 'primary' | 'secondary'
+    variant: 'primary' | 'secondary' | 'admin'
 }> = ({ onClick, icon, label, variant }) => (
     <button
         onClick={onClick}
         className={`group relative px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden ${
             variant === 'primary'
                 ? 'bg-gradient-to-r from-blue-600 to-green-600 text-white'
+                : variant === 'admin'
+                ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white border border-red-500/50'
                 : 'bg-gray-800/50 backdrop-blur-sm border border-gray-700 text-gray-300 hover:bg-gray-700/50 hover:border-blue-500/50'
         }`}
         title={label}

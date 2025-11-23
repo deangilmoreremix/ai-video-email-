@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ScriptEditor } from './components/ScriptEditor';
 import { VideoRecorder, Take } from './components/VideoRecorder';
 import { VideoEditor } from './components/VideoEditor';
@@ -56,6 +57,7 @@ const App: React.FC = () => {
     const [showVideoLibrary, setShowVideoLibrary] = useState(false);
     const [editingFromLibrary, setEditingFromLibrary] = useState(false);
     const [showAuth, setShowAuth] = useState(false);
+    const [showAdmin, setShowAdmin] = useState(false);
     const [presentationScore, setPresentationScore] = useState<number>();
     const [hasChapters, setHasChapters] = useState(false);
     const [hasSEO, setHasSEO] = useState(false);
@@ -401,6 +403,7 @@ const App: React.FC = () => {
                         onOpenSettings={() => setShowSettings(true)}
                         onOpenVideoLibrary={() => setShowVideoLibrary(true)}
                         onOpenAuth={() => setShowAuth(true)}
+                        onOpenAdmin={() => setShowAdmin(true)}
                     />
                 )}
                 <main className={`${appState === 'landing' ? '' : 'container mx-auto px-4 py-8'} flex-grow flex items-start justify-center`}>
@@ -417,6 +420,7 @@ const App: React.FC = () => {
                     onEditVideo={handleEditVideoFromLibrary}
                 />}
                 {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+                {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
                 {showKeyboardShortcuts && <KeyboardShortcutsHelp onClose={() => setShowKeyboardShortcuts(false)} />}
 
                 {appState !== 'landing' && (
