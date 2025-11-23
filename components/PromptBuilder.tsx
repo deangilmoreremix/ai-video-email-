@@ -36,6 +36,7 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
   const [isImproving, setIsImproving] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGeneratingVariations, setIsGeneratingVariations] = useState(false);
+  const [enhancingType, setEnhancingType] = useState<string | null>(null);
 
   const [improvement, setImprovement] = useState<PromptImprovement | null>(null);
   const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null);
@@ -114,6 +115,7 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
       return;
     }
 
+    setEnhancingType(enhancer);
     try {
       const enhancers: any = {
         addCTA: enhancer === 'cta',
@@ -127,6 +129,8 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
       setPrompt(enhanced);
     } catch (error: any) {
       onError(`Failed to enhance prompt: ${error.message || 'Unknown error'}`);
+    } finally {
+      setEnhancingType(null);
     }
   };
 
@@ -283,35 +287,88 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
         />
 
         {/* Quick Enhancers */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => handleEnhancer('cta')}
-            disabled={!prompt.trim()}
-            className="px-3 py-1 text-xs bg-gray-700 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 transition-colors"
-          >
-            + Call to Action
-          </button>
-          <button
-            onClick={() => handleEnhancer('urgency')}
-            disabled={!prompt.trim()}
-            className="px-3 py-1 text-xs bg-gray-700 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 transition-colors"
-          >
-            + Urgency
-          </button>
-          <button
-            onClick={() => handleEnhancer('personalization')}
-            disabled={!prompt.trim()}
-            className="px-3 py-1 text-xs bg-gray-700 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 transition-colors"
-          >
-            + Personalization
-          </button>
-          <button
-            onClick={() => handleEnhancer('emotion')}
-            disabled={!prompt.trim()}
-            className="px-3 py-1 text-xs bg-gray-700 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 transition-colors"
-          >
-            + Emotion
-          </button>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-gray-400">Quick Enhancers</label>
+            {!prompt.trim() && (
+              <span className="text-xs text-yellow-400">Type a prompt first</span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handleEnhancer('cta')}
+              disabled={!prompt.trim() || enhancingType !== null}
+              title={!prompt.trim() ? 'Enter a prompt first' : 'Add a strong call-to-action'}
+              className="px-3 py-1.5 text-xs bg-gray-700 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all relative"
+            >
+              {enhancingType === 'cta' ? (
+                <span className="flex items-center gap-1">
+                  <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Adding...
+                </span>
+              ) : (
+                '+ Call to Action'
+              )}
+            </button>
+            <button
+              onClick={() => handleEnhancer('urgency')}
+              disabled={!prompt.trim() || enhancingType !== null}
+              title={!prompt.trim() ? 'Enter a prompt first' : 'Add urgency and time-sensitivity'}
+              className="px-3 py-1.5 text-xs bg-gray-700 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {enhancingType === 'urgency' ? (
+                <span className="flex items-center gap-1">
+                  <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Adding...
+                </span>
+              ) : (
+                '+ Urgency'
+              )}
+            </button>
+            <button
+              onClick={() => handleEnhancer('personalization')}
+              disabled={!prompt.trim() || enhancingType !== null}
+              title={!prompt.trim() ? 'Enter a prompt first' : 'Add personalization elements'}
+              className="px-3 py-1.5 text-xs bg-gray-700 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {enhancingType === 'personalization' ? (
+                <span className="flex items-center gap-1">
+                  <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Adding...
+                </span>
+              ) : (
+                '+ Personalization'
+              )}
+            </button>
+            <button
+              onClick={() => handleEnhancer('emotion')}
+              disabled={!prompt.trim() || enhancingType !== null}
+              title={!prompt.trim() ? 'Enter a prompt first' : 'Add emotional appeal'}
+              className="px-3 py-1.5 text-xs bg-gray-700 text-white rounded-full hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {enhancingType === 'emotion' ? (
+                <span className="flex items-center gap-1">
+                  <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Adding...
+                </span>
+              ) : (
+                '+ Emotion'
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 italic">Click to enhance your prompt with AI-powered suggestions</p>
         </div>
       </div>
 
