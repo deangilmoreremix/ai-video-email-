@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { CampaignDashboard } from './components/campaigns/CampaignDashboard';
+import { CampaignCreator } from './components/campaigns/CampaignCreator';
+import { RecipientManager } from './components/campaigns/RecipientManager';
+import { Campaign } from './services/campaignService';
+import { supabase } from './lib/supabase';
 import { ScriptEditor } from './components/ScriptEditor';
 import { VideoRecorder, Take } from './components/VideoRecorder';
 import { VideoEditor } from './components/VideoEditor';
@@ -23,7 +28,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { triggerAIScenesGeneratedEvent } from './services/zapierWebhook';
 import { initializeDefaultShortcuts, cleanupShortcuts } from './services/keyboardShortcuts';
 
-export type AppState = 'landing' | 'main' | 'editing' | 'composer';
+export type AppState = 'landing' | 'main' | 'editing' | 'composer' | 'campaigns' | 'campaign-creator' | 'campaign-manager';
 
 // Interface for the saved project state
 interface SavedProject {
@@ -59,6 +64,8 @@ const App: React.FC = () => {
     const [editingFromLibrary, setEditingFromLibrary] = useState(false);
     const [showAuth, setShowAuth] = useState(false);
     const [showAdmin, setShowAdmin] = useState(false);
+    const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+    const [existingVideos, setExistingVideos] = useState<UserVideo[]>([]);
     const [presentationScore, setPresentationScore] = useState<number>();
     const [hasChapters, setHasChapters] = useState(false);
     const [hasSEO, setHasSEO] = useState(false);
@@ -212,6 +219,50 @@ const App: React.FC = () => {
         setAppState('main');
     };
 
+    const handleOpenCampaigns = () => {
+        setAppState('campaigns');
+        loadExistingVideos();
+    };
+
+    const handleCreateCampaign = () => {
+        setAppState('campaign-creator');
+        loadExistingVideos();
+    };
+
+    const handleCampaignCreated = (campaign: Campaign) => {
+        setSelectedCampaign(campaign);
+        setAppState('campaign-manager');
+    };
+
+    const handleSelectCampaign = (campaign: Campaign) => {
+        setSelectedCampaign(campaign);
+        setAppState('campaign-manager');
+    };
+
+    const handleBackToCampaigns = () => {
+        setSelectedCampaign(null);
+        setAppState('campaigns');
+    };
+
+    const loadExistingVideos = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from('user_videos')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                setExistingVideos(data);
+            }
+        } catch (err) {
+            console.error('Failed to load videos:', err);
+        }
+    };
+
     const handleSelectTake = (take: Take) => {
         setSelectedTake(take);
         setAppState('main');
@@ -320,6 +371,16 @@ const App: React.FC = () => {
         switch(appState) {
             case 'landing':
                 return <LandingPage onGetStarted={() => setAppState('main')} />;
+            case 'campaigns':
+                return <CampaignDashboard onCreateNew={handleCreateCampaign} onSelectCampaign={handleSelectCampaign} />;
+            case 'campaign-creator':
+                return <CampaignCreator onComplete={handleCampaignCreated} onCancel={handleBackToCampaigns} existingVideos={existingVideos} />;
+            case 'campaign-manager':
+                if (!selectedCampaign) {
+                    setAppState('campaigns');
+                    return null;
+                }
+                return <RecipientManager campaign={selectedCampaign} onBack={handleBackToCampaigns} />;
             case 'editing':
                 if (!selectedTake) {
                     setAppState('main');
@@ -405,6 +466,7 @@ const App: React.FC = () => {
                         onOpenVideoLibrary={() => setShowVideoLibrary(true)}
                         onOpenAuth={() => setShowAuth(true)}
                         onOpenAdmin={() => setShowAdmin(true)}
+                        onOpenCampaigns={handleOpenCampaigns}
                     />
                 )}
                 <main className={`${appState === 'landing' ? '' : 'container mx-auto px-4 py-8'} flex-grow flex items-start justify-center`}>

@@ -9,9 +9,10 @@ interface HeaderProps {
     onOpenVideoLibrary: () => void;
     onOpenAuth: () => void;
     onOpenAdmin?: () => void;
+    onOpenCampaigns?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, onOpenVideoLibrary, onOpenAuth, onOpenAdmin }) => {
+export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, onOpenVideoLibrary, onOpenAuth, onOpenAdmin, onOpenCampaigns }) => {
     const { user, signOut } = useAuth();
     const [scrolled, setScrolled] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -78,6 +79,14 @@ export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, on
                                     label="My Videos"
                                     variant="secondary"
                                 />
+                                {onOpenCampaigns && (
+                                    <NavButton
+                                        onClick={onOpenCampaigns}
+                                        icon="🚀"
+                                        label="Campaigns"
+                                        variant="secondary"
+                                    />
+                                )}
                                 <NavButton
                                     onClick={onNewProject}
                                     icon="✨"
