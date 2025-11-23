@@ -50,7 +50,7 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [prompt]);
+  }, [prompt, isAnalyzing]);
 
   const handleAnalyze = async () => {
     if (!prompt.trim() || prompt.length < 10) return;
@@ -73,6 +73,9 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
     }
 
     setIsImproving(true);
+    setImprovement(null);
+    setShowComparison(false);
+
     try {
       const context = mode === 'advanced' ? {
         targetAudience,
@@ -83,10 +86,19 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
       } : undefined;
 
       const result = await improvePrompt(prompt, context);
+
+      if (!result || !result.improvedPrompt) {
+        throw new Error('Invalid improvement response');
+      }
+
       setImprovement(result);
       setShowComparison(true);
     } catch (error: any) {
-      onError(`Failed to improve prompt: ${error.message || 'Unknown error'}`);
+      console.error('Improve prompt error:', error);
+      const errorMessage = error.message || 'Failed to improve prompt. Please try again.';
+      onError(errorMessage);
+      setImprovement(null);
+      setShowComparison(false);
     } finally {
       setIsImproving(false);
     }
@@ -99,11 +111,25 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
     }
 
     setIsGeneratingVariations(true);
+    setVariations([]);
+
     try {
       const result = await generatePromptVariations(prompt, 3);
+
+      if (!result || !Array.isArray(result)) {
+        throw new Error('Invalid variations response');
+      }
+
       setVariations(result);
+
+      if (result.length === 0) {
+        onError('No variations generated. Please try again with a different prompt.');
+      }
     } catch (error: any) {
-      onError(`Failed to generate variations: ${error.message || 'Unknown error'}`);
+      console.error('Generate variations error:', error);
+      const errorMessage = error.message || 'Failed to generate variations. Please try again.';
+      onError(errorMessage);
+      setVariations([]);
     } finally {
       setIsGeneratingVariations(false);
     }
@@ -116,6 +142,8 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
     }
 
     setEnhancingType(enhancer);
+    const originalPrompt = prompt;
+
     try {
       const enhancers: any = {
         addCTA: enhancer === 'cta',
@@ -126,16 +154,24 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
       };
 
       const enhanced = await enhancePromptWithContext(prompt, enhancers);
-      setPrompt(enhanced);
+
+      if (!enhanced || enhanced === prompt) {
+        console.warn('Enhancement returned same or empty prompt');
+      }
+
+      setPrompt(enhanced || originalPrompt);
     } catch (error: any) {
-      onError(`Failed to enhance prompt: ${error.message || 'Unknown error'}`);
+      console.error('Enhance prompt error:', error);
+      const errorMessage = error.message || 'Failed to enhance prompt. Please try again.';
+      onError(errorMessage);
+      setPrompt(originalPrompt);
     } finally {
       setEnhancingType(null);
     }
   };
 
   const handleUseImproved = () => {
-    if (improvement) {
+    if (improvement && improvement.improvedPrompt) {
       setPrompt(improvement.improvedPrompt);
       setShowComparison(false);
       setImprovement(null);
@@ -143,8 +179,10 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
   };
 
   const handleUseVariation = (variation: PromptVariation) => {
-    setPrompt(variation.prompt);
-    setVariations([]);
+    if (variation && variation.prompt) {
+      setPrompt(variation.prompt);
+      setVariations([]);
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -443,8 +481,20 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
           disabled={!prompt.trim() || isImproving}
           className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 font-semibold rounded-lg hover:shadow-lg hover:shadow-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          <SparklesIcon className="w-5 h-5" />
-          {isImproving ? 'Improving...' : 'Improve Prompt'}
+          {isImproving ? (
+            <>
+              <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Improving...
+            </>
+          ) : (
+            <>
+              <SparklesIcon className="w-5 h-5" />
+              Improve Prompt
+            </>
+          )}
         </button>
 
         <button
@@ -452,7 +502,17 @@ export const PromptBuilder: React.FC<PromptBuilderProps> = ({
           disabled={!prompt.trim() || isGeneratingVariations}
           className="px-4 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600 disabled:opacity-50 transition-colors"
         >
-          {isGeneratingVariations ? '...' : 'Variations'}
+          {isGeneratingVariations ? (
+            <span className="flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Loading...
+            </span>
+          ) : (
+            'Variations'
+          )}
         </button>
       </div>
 

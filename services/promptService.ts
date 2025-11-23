@@ -74,9 +74,10 @@ export const improvePrompt = async (
     Video Length: ${context.videoLength || 60} seconds
   ` : '';
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-pro',
-    contents: `You are an expert video script prompt optimizer. Analyze this prompt and improve it to generate better video scripts.
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents: `You are an expert video script prompt optimizer. Analyze this prompt and improve it to generate better video scripts.
 
 Original Prompt: "${originalPrompt}"
 
@@ -98,26 +99,57 @@ Return a JSON object with:
 - "improvements" (array of strings): Brief explanation of each improvement
 
 Make the improved prompt detailed enough to generate an engaging 60-90 second video script.`,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          improvedPrompt: { type: Type.STRING },
-          suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
-          qualityScore: { type: Type.NUMBER },
-          missingElements: { type: Type.ARRAY, items: { type: Type.STRING } },
-          improvements: { type: Type.ARRAY, items: { type: Type.STRING } }
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            improvedPrompt: { type: Type.STRING },
+            suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
+            qualityScore: { type: Type.NUMBER },
+            missingElements: { type: Type.ARRAY, items: { type: Type.STRING } },
+            improvements: { type: Type.ARRAY, items: { type: Type.STRING } }
+          }
         }
       }
-    }
-  });
+    });
 
-  const result = JSON.parse(response.text.trim());
-  return {
-    originalPrompt,
-    ...result
-  };
+    if (!response || !response.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+
+    const responseText = response.text.trim();
+    if (!responseText) {
+      throw new Error('Empty response from Gemini API');
+    }
+
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Response:', responseText);
+      throw new Error('Failed to parse API response. Please try again.');
+    }
+
+    if (!result.improvedPrompt || !Array.isArray(result.improvements)) {
+      throw new Error('Invalid response format from API');
+    }
+
+    return {
+      originalPrompt,
+      improvedPrompt: result.improvedPrompt || originalPrompt,
+      suggestions: result.suggestions || [],
+      qualityScore: result.qualityScore || 50,
+      missingElements: result.missingElements || [],
+      improvements: result.improvements || []
+    };
+  } catch (error: any) {
+    console.error('Error improving prompt:', error);
+    if (error.message?.includes('API key')) {
+      throw new Error('Gemini API key is not configured. Please check your settings.');
+    }
+    throw new Error(error.message || 'Failed to improve prompt. Please try again.');
+  }
 };
 
 export const generatePromptVariations = async (
@@ -126,9 +158,10 @@ export const generatePromptVariations = async (
 ): Promise<PromptVariation[]> => {
   const ai = getGeminiInstance();
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `Generate ${count} different variations of this video script prompt, each with a different style and focus area.
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Generate ${count} different variations of this video script prompt, each with a different style and focus area.
 
 Base Prompt: "${basePrompt}"
 
@@ -142,31 +175,57 @@ Return JSON array of objects with:
 - "prompt" (string): The prompt variation
 - "style" (string): The tone/style used
 - "focusArea" (string): What this variation emphasizes`,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            prompt: { type: Type.STRING },
-            style: { type: Type.STRING },
-            focusArea: { type: Type.STRING }
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              prompt: { type: Type.STRING },
+              style: { type: Type.STRING },
+              focusArea: { type: Type.STRING }
+            }
           }
         }
       }
-    }
-  });
+    });
 
-  return JSON.parse(response.text.trim());
+    if (!response || !response.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+
+    const responseText = response.text.trim();
+    if (!responseText) {
+      throw new Error('Empty response from Gemini API');
+    }
+
+    let variations;
+    try {
+      variations = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Response:', responseText);
+      throw new Error('Failed to parse variations. Please try again.');
+    }
+
+    if (!Array.isArray(variations)) {
+      throw new Error('Invalid variations format from API');
+    }
+
+    return variations.filter(v => v.prompt && v.style && v.focusArea);
+  } catch (error: any) {
+    console.error('Error generating variations:', error);
+    throw new Error(error.message || 'Failed to generate variations. Please try again.');
+  }
 };
 
 export const analyzePromptQuality = async (prompt: string): Promise<PromptAnalysis> => {
   const ai = getGeminiInstance();
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `Analyze this video script prompt for quality.
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Analyze this video script prompt for quality.
 
 Prompt: "${prompt}"
 
@@ -182,23 +241,58 @@ Return JSON with:
 - "overallScore" (number 0-100): Average of the three scores
 - "issues" (array of strings): Specific problems to fix
 - "strengths" (array of strings): What the prompt does well`,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          clarity: { type: Type.NUMBER },
-          specificity: { type: Type.NUMBER },
-          completeness: { type: Type.NUMBER },
-          overallScore: { type: Type.NUMBER },
-          issues: { type: Type.ARRAY, items: { type: Type.STRING } },
-          strengths: { type: Type.ARRAY, items: { type: Type.STRING } }
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            clarity: { type: Type.NUMBER },
+            specificity: { type: Type.NUMBER },
+            completeness: { type: Type.NUMBER },
+            overallScore: { type: Type.NUMBER },
+            issues: { type: Type.ARRAY, items: { type: Type.STRING } },
+            strengths: { type: Type.ARRAY, items: { type: Type.STRING } }
+          }
         }
       }
-    }
-  });
+    });
 
-  return JSON.parse(response.text.trim());
+    if (!response || !response.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+
+    const responseText = response.text.trim();
+    if (!responseText) {
+      throw new Error('Empty response from Gemini API');
+    }
+
+    let analysis;
+    try {
+      analysis = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Response:', responseText);
+      throw new Error('Failed to parse analysis. Please try again.');
+    }
+
+    return {
+      clarity: analysis.clarity || 50,
+      specificity: analysis.specificity || 50,
+      completeness: analysis.completeness || 50,
+      overallScore: analysis.overallScore || 50,
+      issues: Array.isArray(analysis.issues) ? analysis.issues : [],
+      strengths: Array.isArray(analysis.strengths) ? analysis.strengths : []
+    };
+  } catch (error: any) {
+    console.error('Error analyzing prompt:', error);
+    return {
+      clarity: 50,
+      specificity: 50,
+      completeness: 50,
+      overallScore: 50,
+      issues: ['Unable to analyze prompt at this time'],
+      strengths: []
+    };
+  }
 };
 
 export const generatePromptSuggestions = async (category: PromptCategory): Promise<PromptSuggestion[]> => {
@@ -216,9 +310,10 @@ export const generatePromptSuggestions = async (category: PromptCategory): Promi
     explainer: 'Explain a concept or process'
   };
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `Generate 5 example video script prompts for the category: ${category}
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Generate 5 example video script prompts for the category: ${category}
 
 Category Description: ${categoryDescriptions[category]}
 
@@ -235,25 +330,50 @@ Return JSON array of objects with:
 - "prompt" (string): The full prompt text
 - "category" (string): "${category}"
 - "estimatedLength" (number): Estimated video length in seconds`,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            description: { type: Type.STRING },
-            prompt: { type: Type.STRING },
-            category: { type: Type.STRING },
-            estimatedLength: { type: Type.NUMBER }
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+              prompt: { type: Type.STRING },
+              category: { type: Type.STRING },
+              estimatedLength: { type: Type.NUMBER }
+            }
           }
         }
       }
-    }
-  });
+    });
 
-  return JSON.parse(response.text.trim());
+    if (!response || !response.text) {
+      throw new Error('Invalid response from Gemini API');
+    }
+
+    const responseText = response.text.trim();
+    if (!responseText) {
+      return [];
+    }
+
+    let suggestions;
+    try {
+      suggestions = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return [];
+    }
+
+    if (!Array.isArray(suggestions)) {
+      return [];
+    }
+
+    return suggestions.filter(s => s.title && s.prompt);
+  } catch (error: any) {
+    console.error('Error generating suggestions:', error);
+    return [];
+  }
 };
 
 export const enhancePromptWithContext = async (
@@ -268,23 +388,37 @@ export const enhancePromptWithContext = async (
 ): Promise<string> => {
   const ai = getGeminiInstance();
 
-  const enhancements: string[] = [];
-  if (enhancers.addCTA) enhancements.push('a strong call-to-action');
-  if (enhancers.addUrgency) enhancements.push('urgency and time-sensitivity');
-  if (enhancers.addPersonalization) enhancements.push('personalization elements');
-  if (enhancers.addStatistics) enhancements.push('relevant statistics or data');
-  if (enhancers.addEmotionalAppeal) enhancements.push('emotional appeal');
+  try {
+    const enhancements: string[] = [];
+    if (enhancers.addCTA) enhancements.push('a strong call-to-action');
+    if (enhancers.addUrgency) enhancements.push('urgency and time-sensitivity');
+    if (enhancers.addPersonalization) enhancements.push('personalization elements');
+    if (enhancers.addStatistics) enhancements.push('relevant statistics or data');
+    if (enhancers.addEmotionalAppeal) enhancements.push('emotional appeal');
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: `Enhance this video script prompt by adding: ${enhancements.join(', ')}.
+    if (enhancements.length === 0) {
+      return basePrompt;
+    }
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Enhance this video script prompt by adding: ${enhancements.join(', ')}.
 
 Original Prompt: "${basePrompt}"
 
 Return only the enhanced prompt text, keeping the core message but adding the specified elements naturally.`,
-  });
+    });
 
-  return response.text.trim();
+    if (!response || !response.text) {
+      return basePrompt;
+    }
+
+    const enhancedText = response.text.trim();
+    return enhancedText || basePrompt;
+  } catch (error: any) {
+    console.error('Error enhancing prompt:', error);
+    return basePrompt;
+  }
 };
 
 export const getPromptAutocompleteSuggestions = async (
