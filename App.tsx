@@ -24,6 +24,9 @@ import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { RateLimitNotification } from './components/RateLimitNotification';
 import { OnboardingTour } from './components/OnboardingTour';
 import { HelpCenter } from './components/HelpCenter';
+import { DashboardOverview } from './components/DashboardOverview';
+import { VideoWorkspace } from './components/VideoWorkspace';
+import { NavigationSidebar } from './components/NavigationSidebar';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { getOnboardingProgress, initializeOnboarding } from './services/onboardingService';
 import { AppContext, AppContextType } from './contexts/AppContext';
@@ -31,7 +34,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { triggerAIScenesGeneratedEvent } from './services/zapierWebhook';
 import { initializeDefaultShortcuts, cleanupShortcuts } from './services/keyboardShortcuts';
 
-export type AppState = 'landing' | 'main' | 'editing' | 'composer' | 'campaigns' | 'campaign-creator' | 'campaign-manager';
+export type AppState = 'landing' | 'dashboard' | 'create' | 'editing' | 'composer' | 'campaigns' | 'campaign-creator' | 'campaign-manager' | 'videos' | 'analytics' | 'contacts' | 'templates' | 'admin';
 
 // Interface for the saved project state
 interface SavedProject {
@@ -213,7 +216,7 @@ const App: React.FC = () => {
     }, []);
     
     const handleGetStarted = async () => {
-        setAppState('main');
+        setAppState('dashboard');
 
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -226,6 +229,10 @@ const App: React.FC = () => {
         }
     };
 
+    const handleNavigate = (view: string) => {
+        setAppState(view as AppState);
+    };
+
     const handleNewProject = () => {
         localStorage.removeItem('aiVideoProject');
         setScript('');
@@ -235,7 +242,11 @@ const App: React.FC = () => {
         setEditedBlob(null);
         setAiScenes([]);
         setError(null);
-        setAppState('main');
+        setAppState('create');
+    };
+
+    const handleCreateVideo = () => {
+        setAppState('create');
     };
 
     const handleOpenCampaigns = () => {
@@ -491,6 +502,37 @@ const App: React.FC = () => {
         switch(appState) {
             case 'landing':
                 return <LandingPage onGetStarted={handleGetStarted} />;
+            case 'dashboard':
+                return <DashboardOverview
+                    onNavigate={handleNavigate}
+                    onCreateVideo={handleCreateVideo}
+                    onCreateCampaign={handleCreateCampaign}
+                />;
+            case 'create':
+                return <VideoWorkspace
+                    script={script}
+                    onScriptChange={setScript}
+                    visualStyle={visualStyle}
+                    setVisualStyle={setVisualStyle}
+                    takes={takes}
+                    setTakes={setTakes}
+                    selectedTake={selectedTake}
+                    onSelectTake={handleSelectTake}
+                    onEditTake={handleEditVideo}
+                    onCreateCampaign={handleCreateCampaignFromTake}
+                    onSubmit={handleGenerateScenes}
+                    isSubmitting={isLoading}
+                    aiScenes={aiScenes}
+                    setAiScenes={setAiScenes}
+                    onError={handleGlobalError}
+                />;
+            case 'videos':
+                return <VideoLibrary
+                    onClose={() => setAppState('dashboard')}
+                    onEditVideo={handleEditVideoFromLibrary}
+                />;
+            case 'analytics':
+                return <AnalyticsDashboard onClose={() => setAppState('dashboard')} />;
             case 'campaigns':
                 return <CampaignDashboard onCreateNew={handleCreateCampaign} onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-creator':
@@ -503,14 +545,14 @@ const App: React.FC = () => {
                 return <RecipientManager campaign={selectedCampaign} onBack={handleBackToCampaigns} />;
             case 'editing':
                 if (!selectedTake) {
-                    setAppState('main');
+                    setAppState('create');
                     return null;
                 }
                 return <VideoEditor
                     take={selectedTake}
                     onFinishEditing={handleFinishEditing}
                     onCancel={() => {
-                        setAppState('main');
+                        setAppState('create');
                         setEditingFromLibrary(false);
                     }}
                     onError={handleGlobalError}
@@ -519,7 +561,7 @@ const App: React.FC = () => {
                 />;
             case 'composer':
                  if (!selectedTake) {
-                    setAppState('main');
+                    setAppState('create');
                     return null;
                 }
                 return <EmailComposer
@@ -527,52 +569,27 @@ const App: React.FC = () => {
                     aiSceneUrls={aiScenes}
                     script={script}
                     transcript={selectedTake.transcript}
-                    onBack={() => setAppState('main')}
+                    onBack={() => setAppState('create')}
                     onCreateCampaign={() => handleCreateCampaignFromBlob(editedBlob || selectedTake.blob)}
                  />
-            case 'main':
+            case 'admin':
+                return <AdminDashboard onClose={() => setAppState('dashboard')} />;
+            case 'contacts':
+            case 'templates':
             default:
                 return (
-                    <div className="w-full max-w-7xl mx-auto space-y-8">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <ScriptEditor
-                                script={script}
-                                onScriptChange={setScript}
-                                visualStyle={visualStyle}
-                                setVisualStyle={setVisualStyle}
-                                onSubmit={handleGenerateScenes}
-                                isSubmitting={isLoading}
-                                disabled={isLoading}
-                                onError={handleGlobalError}
-                            />
-                            <VideoRecorder
-                                script={script}
-                                takes={takes}
-                                setTakes={setTakes}
-                                onSelectTake={handleSelectTake}
-                                onEditTake={handleEditVideo}
-                                onCreateCampaign={handleCreateCampaignFromTake}
-                                selectedTakeId={selectedTake?.id}
-                                onError={handleGlobalError}
-                            />
-                        </div>
-                        {(script || selectedTake) && (
-                            <>
-                                <AIFeaturesPanel
-                                    script={script}
-                                    onScriptUpdate={setScript}
-                                    videoBlob={selectedTake?.blob}
-                                    aiScenes={aiScenes}
-                                    onScenesUpdate={setAiScenes}
-                                />
-                                <AdvancedAIPanel
-                                    videoBlob={selectedTake?.blob || null}
-                                    videoId={undefined}
-                                    script={script}
-                                    onError={handleGlobalError}
-                                />
-                            </>
-                        )}
+                    <div className="w-full max-w-7xl mx-auto py-12 text-center">
+                        <svg className="w-24 h-24 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <h2 className="text-2xl font-bold text-white mb-2">Coming Soon</h2>
+                        <p className="text-gray-400">This feature is under development</p>
+                        <button
+                            onClick={() => setAppState('dashboard')}
+                            className="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                        >
+                            Back to Dashboard
+                        </button>
                     </div>
                 );
         }
@@ -581,26 +598,37 @@ const App: React.FC = () => {
     return (
         <AuthProvider>
             <AppContext.Provider value={libraries}>
-                <div className="bg-gray-900 text-white min-h-screen font-sans flex flex-col">
-                {appState !== 'landing' && (
-                    <Header
-                        onNewProject={handleNewProject}
+                <div className="bg-gray-900 text-white min-h-screen font-sans flex">
+                {appState !== 'landing' && appState !== 'editing' && appState !== 'composer' && (
+                    <NavigationSidebar
+                        currentView={appState}
+                        onNavigate={handleNavigate}
                         onOpenSettings={() => setShowSettings(true)}
-                        onOpenVideoLibrary={() => setShowVideoLibrary(true)}
-                        onOpenAuth={() => setShowAuth(true)}
-                        onOpenAdmin={() => setShowAdmin(true)}
-                        onOpenCampaigns={handleOpenCampaigns}
                         onOpenHelp={() => setShowHelp(true)}
+                        onCreateVideo={handleCreateVideo}
                     />
                 )}
-                <main className={`${appState === 'landing' ? '' : 'container mx-auto px-4 py-8'} flex-grow flex items-start justify-center`}>
-                     {error && (
-                        <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg mb-6 text-center fixed top-24 z-50">
-                            <p>{error}</p>
-                        </div>
+                <div className={`flex-1 flex flex-col ${appState !== 'landing' && appState !== 'editing' && appState !== 'composer' ? 'ml-64' : ''}`}>
+                    {appState !== 'landing' && appState !== 'dashboard' && appState !== 'create' && (
+                        <Header
+                            onNewProject={handleNewProject}
+                            onOpenSettings={() => setShowSettings(true)}
+                            onOpenVideoLibrary={() => setShowVideoLibrary(true)}
+                            onOpenAuth={() => setShowAuth(true)}
+                            onOpenAdmin={() => setShowAdmin(true)}
+                            onOpenCampaigns={handleOpenCampaigns}
+                            onOpenHelp={() => setShowHelp(true)}
+                        />
                     )}
-                    {renderContent()}
-                </main>
+                    <main className={`${appState === 'landing' ? '' : 'p-8'} flex-grow flex items-start justify-center`}>
+                         {error && (
+                            <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg mb-6 text-center fixed top-24 z-50">
+                                <p>{error}</p>
+                            </div>
+                        )}
+                        {renderContent()}
+                    </main>
+                </div>
                 {showSettings && <Settings onClose={() => setShowSettings(false)} />}
                 {showVideoLibrary && <VideoLibrary
                     onClose={() => setShowVideoLibrary(false)}
