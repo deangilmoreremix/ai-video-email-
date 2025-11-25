@@ -10,9 +10,10 @@ interface HeaderProps {
     onOpenAuth: () => void;
     onOpenAdmin?: () => void;
     onOpenCampaigns?: () => void;
+    onOpenHelp?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, onOpenVideoLibrary, onOpenAuth, onOpenAdmin, onOpenCampaigns }) => {
+export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, onOpenVideoLibrary, onOpenAuth, onOpenAdmin, onOpenCampaigns, onOpenHelp }) => {
     const { user, signOut } = useAuth();
     const [scrolled, setScrolled] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
@@ -93,6 +94,14 @@ export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, on
                                     label="New Project"
                                     variant="primary"
                                 />
+                                {onOpenHelp && (
+                                    <NavButton
+                                        onClick={onOpenHelp}
+                                        icon="❓"
+                                        label="Help"
+                                        variant="secondary"
+                                    />
+                                )}
                                 <NavButton
                                     onClick={onOpenSettings}
                                     icon="⚙️"
@@ -161,6 +170,13 @@ export const Header: React.FC<HeaderProps> = ({ onNewProject, onOpenSettings, on
                                     icon="✨"
                                     label="New Project"
                                 />
+                                {onOpenHelp && (
+                                    <MobileNavButton
+                                        onClick={() => { onOpenHelp(); setShowMenu(false); }}
+                                        icon="❓"
+                                        label="Help"
+                                    />
+                                )}
                                 <MobileNavButton
                                     onClick={() => { onOpenSettings(); setShowMenu(false); }}
                                     icon="⚙️"

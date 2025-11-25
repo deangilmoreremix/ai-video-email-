@@ -22,7 +22,10 @@ import { AIAssistant } from './components/AIAssistant';
 import { SmartTrigger, useSmartTrigger } from './components/SmartTrigger';
 import { KeyboardShortcutsHelp } from './components/KeyboardShortcutsHelp';
 import { RateLimitNotification } from './components/RateLimitNotification';
+import { OnboardingTour } from './components/OnboardingTour';
+import { HelpCenter } from './components/HelpCenter';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
+import { getOnboardingProgress, initializeOnboarding } from './services/onboardingService';
 import { AppContext, AppContextType } from './contexts/AppContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { triggerAIScenesGeneratedEvent } from './services/zapierWebhook';
@@ -73,6 +76,8 @@ const App: React.FC = () => {
     const [hasEngagementPrediction, setHasEngagementPrediction] = useState(false);
     const { trigger, showTrigger, hideTrigger } = useSmartTrigger();
     const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
 
     const debounce = <F extends (...args: any[]) => any>(func: F, waitFor: number) => {
       let timeout: number;
@@ -207,6 +212,20 @@ const App: React.FC = () => {
         return () => clearTimeout(timeout);
     }, []);
     
+    const handleGetStarted = async () => {
+        setAppState('main');
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await initializeOnboarding();
+            const progress = await getOnboardingProgress();
+
+            if (progress && !progress.tour_completed && !progress.skip_onboarding) {
+                setTimeout(() => setShowOnboarding(true), 500);
+            }
+        }
+    };
+
     const handleNewProject = () => {
         localStorage.removeItem('aiVideoProject');
         setScript('');
@@ -471,7 +490,7 @@ const App: React.FC = () => {
     const renderContent = () => {
         switch(appState) {
             case 'landing':
-                return <LandingPage onGetStarted={() => setAppState('main')} />;
+                return <LandingPage onGetStarted={handleGetStarted} />;
             case 'campaigns':
                 return <CampaignDashboard onCreateNew={handleCreateCampaign} onSelectCampaign={handleSelectCampaign} />;
             case 'campaign-creator':
@@ -571,6 +590,7 @@ const App: React.FC = () => {
                         onOpenAuth={() => setShowAuth(true)}
                         onOpenAdmin={() => setShowAdmin(true)}
                         onOpenCampaigns={handleOpenCampaigns}
+                        onOpenHelp={() => setShowHelp(true)}
                     />
                 )}
                 <main className={`${appState === 'landing' ? '' : 'container mx-auto px-4 py-8'} flex-grow flex items-start justify-center`}>
@@ -589,6 +609,13 @@ const App: React.FC = () => {
                 {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
                 {showAdmin && <AdminDashboard onClose={() => setShowAdmin(false)} />}
                 {showKeyboardShortcuts && <KeyboardShortcutsHelp onClose={() => setShowKeyboardShortcuts(false)} />}
+                {showOnboarding && (
+                    <OnboardingTour
+                        onComplete={() => setShowOnboarding(false)}
+                        onSkip={() => setShowOnboarding(false)}
+                    />
+                )}
+                {showHelp && <HelpCenter onClose={() => setShowHelp(false)} />}
                 <RateLimitNotification />
 
                 {appState !== 'landing' && (
