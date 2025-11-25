@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { VideoTemplate, PersonalizationData, getTemplates, generateScriptFromTemplate, incrementTemplateUsage } from '../services/templateService';
 
 interface TemplateSelectorProps {
-  onScriptGenerated: (script: string) => void;
+  onScriptGenerated?: (script: string) => void;
+  onSelect?: (template: VideoTemplate) => void;
   onClose: () => void;
 }
 
-export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onScriptGenerated, onClose }) => {
+export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onScriptGenerated, onSelect, onClose }) => {
   const [templates, setTemplates] = useState<VideoTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<VideoTemplate | null>(null);
   const [personalization, setPersonalization] = useState<PersonalizationData>({});
@@ -50,7 +51,15 @@ export const TemplateSelector: React.FC<TemplateSelectorProps> = ({ onScriptGene
 
     const script = generateScriptFromTemplate(selectedTemplate, personalization);
     await incrementTemplateUsage(selectedTemplate.id);
-    onScriptGenerated(script);
+
+    if (onScriptGenerated) {
+      onScriptGenerated(script);
+    }
+
+    if (onSelect) {
+      onSelect({ ...selectedTemplate, script_template: script });
+    }
+
     onClose();
   };
 

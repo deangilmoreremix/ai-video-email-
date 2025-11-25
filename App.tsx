@@ -27,6 +27,9 @@ import { HelpCenter } from './components/HelpCenter';
 import { DashboardOverview } from './components/DashboardOverview';
 import { VideoWorkspace } from './components/VideoWorkspace';
 import { NavigationSidebar } from './components/NavigationSidebar';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { ContactManager } from './components/ContactManager';
+import { TemplateSelector } from './components/TemplateSelector';
 import { VisualStyle, generateVisualsForScript, base64ToBlob, blobToDataURL, getGoogleGenAIInstance } from './services/geminiService';
 import { getOnboardingProgress, initializeOnboarding } from './services/onboardingService';
 import { AppContext, AppContextType } from './contexts/AppContext';
@@ -577,15 +580,23 @@ const App: React.FC = () => {
             case 'admin':
                 return <AdminDashboard onClose={() => setAppState('dashboard')} />;
             case 'contacts':
+                return <ContactManager />;
             case 'templates':
+                return <TemplateSelector
+                    onSelect={(template) => {
+                        setScript(template.script_template || '');
+                        setAppState('create');
+                    }}
+                    onClose={() => setAppState('dashboard')}
+                />;
             default:
                 return (
                     <div className="w-full max-w-7xl mx-auto py-12 text-center">
                         <svg className="w-24 h-24 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
-                        <h2 className="text-2xl font-bold text-white mb-2">Coming Soon</h2>
-                        <p className="text-gray-400">This feature is under development</p>
+                        <h2 className="text-2xl font-bold text-white mb-2">Page Not Found</h2>
+                        <p className="text-gray-400">The page you're looking for doesn't exist</p>
                         <button
                             onClick={() => setAppState('dashboard')}
                             className="mt-6 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
