@@ -69,13 +69,36 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         new Date(v.created_at) > oneWeekAgo
       ).length;
 
+      const { data: campaigns } = await supabase
+        .from('campaigns')
+        .select('id')
+        .eq('user_id', user.id);
+
+      const { data: recipients } = await supabase
+        .from('campaign_recipients')
+        .select('sent_at, view_count, watch_duration')
+        .in('campaign_id', (campaigns || []).map(c => c.id));
+
+      const totalSent = (recipients || []).filter(r => r.sent_at).length;
+      const totalViewed = (recipients || []).filter(r => r.view_count > 0).length;
+      const responseRate = totalSent > 0 ? Math.round((totalViewed / totalSent) * 100) : 0;
+
+      const recipientsThisWeek = (recipients || []).filter(r =>
+        r.sent_at && new Date(r.sent_at) > oneWeekAgo
+      ).length;
+
+      const totalWatchTime = (recipients || []).reduce((sum, r) => sum + (r.watch_duration || 0), 0);
+      const avgEngagement = totalViewed > 0
+        ? Math.min(100, Math.round((totalWatchTime / totalViewed) / 60 * 10))
+        : 0;
+
       setStats({
         totalVideos: videos?.length || 0,
-        totalEmails: 0,
-        avgEngagement: Math.round(Math.random() * 30 + 50),
-        responseRate: Math.round(Math.random() * 15 + 10),
+        totalEmails: totalSent,
+        avgEngagement,
+        responseRate,
         videosThisWeek,
-        emailsThisWeek: Math.round(Math.random() * 20)
+        emailsThisWeek: recipientsThisWeek
       });
 
       setLoading(false);
