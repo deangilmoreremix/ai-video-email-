@@ -16,6 +16,8 @@ interface NavigationSidebarProps {
   onOpenSettings: () => void;
   onOpenHelp: () => void;
   onCreateVideo: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
@@ -23,10 +25,11 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
   onNavigate,
   onOpenSettings,
   onOpenHelp,
-  onCreateVideo
+  onCreateVideo,
+  collapsed = false,
+  onToggleCollapse
 }) => {
   const { user, signOut } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -166,7 +169,7 @@ export const NavigationSidebar: React.FC<NavigationSidebarProps> = ({
             </div>
           )}
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={onToggleCollapse}
             className="p-2 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >

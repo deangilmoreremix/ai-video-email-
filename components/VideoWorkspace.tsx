@@ -21,6 +21,7 @@ interface VideoWorkspaceProps {
   aiScenes: string[];
   setAiScenes: (scenes: string[]) => void;
   onError: (message: string) => void;
+  sidebarCollapsed?: boolean;
 }
 
 export const VideoWorkspace: React.FC<VideoWorkspaceProps> = ({
@@ -38,17 +39,26 @@ export const VideoWorkspace: React.FC<VideoWorkspaceProps> = ({
   isSubmitting,
   aiScenes,
   setAiScenes,
-  onError
+  onError,
+  sidebarCollapsed = false
 }) => {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [activeRightTab, setActiveRightTab] = useState<'ai-features' | 'advanced'>('ai-features');
 
+  const getLeftPanelWidth = () => {
+    if (leftPanelCollapsed) return 'w-12';
+    return sidebarCollapsed ? 'w-[420px]' : 'w-[380px]';
+  };
+
+  const getRightPanelWidth = () => {
+    if (rightPanelCollapsed) return 'w-12';
+    return sidebarCollapsed ? 'w-[420px]' : 'w-[380px]';
+  };
+
   return (
     <div className="w-full h-[calc(100vh-120px)] flex gap-4">
-      <div className={`transition-all duration-300 ${
-        leftPanelCollapsed ? 'w-12' : 'w-[380px]'
-      } flex-shrink-0`}>
+      <div className={`transition-all duration-300 ${getLeftPanelWidth()} flex-shrink-0`}>
         {!leftPanelCollapsed ? (
           <div className="h-full bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden flex flex-col">
             <div className="p-4 border-b border-gray-700 flex items-center justify-between bg-gray-900/50">
@@ -126,9 +136,7 @@ export const VideoWorkspace: React.FC<VideoWorkspaceProps> = ({
         </div>
       </div>
 
-      <div className={`transition-all duration-300 ${
-        rightPanelCollapsed ? 'w-12' : 'w-[380px]'
-      } flex-shrink-0`}>
+      <div className={`transition-all duration-300 ${getRightPanelWidth()} flex-shrink-0`}>
         {!rightPanelCollapsed ? (
           <div className="h-full bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden flex flex-col">
             <div className="p-4 border-b border-gray-700 bg-gray-900/50">

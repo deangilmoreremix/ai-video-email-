@@ -81,6 +81,7 @@ const App: React.FC = () => {
     const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const debounce = <F extends (...args: any[]) => any>(func: F, waitFor: number) => {
       let timeout: number;
@@ -525,6 +526,7 @@ const App: React.FC = () => {
                     aiScenes={aiScenes}
                     setAiScenes={setAiScenes}
                     onError={handleGlobalError}
+                    sidebarCollapsed={sidebarCollapsed}
                 />;
             case 'videos':
                 return <VideoLibrary
@@ -606,9 +608,11 @@ const App: React.FC = () => {
                         onOpenSettings={() => setShowSettings(true)}
                         onOpenHelp={() => setShowHelp(true)}
                         onCreateVideo={handleCreateVideo}
+                        collapsed={sidebarCollapsed}
+                        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
                     />
                 )}
-                <div className={`flex-1 flex flex-col ${appState !== 'landing' && appState !== 'editing' && appState !== 'composer' ? 'ml-64' : ''}`}>
+                <div className={`flex-1 flex flex-col ${appState !== 'landing' && appState !== 'editing' && appState !== 'composer' ? (sidebarCollapsed ? 'ml-16' : 'ml-64') : ''}`}>
                     {appState !== 'landing' && appState !== 'dashboard' && appState !== 'create' && (
                         <Header
                             onNewProject={handleNewProject}
