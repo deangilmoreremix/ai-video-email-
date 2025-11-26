@@ -9,7 +9,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
-  const [liveUsers, setLiveUsers] = useState(1247);
+  const [liveUsers, setLiveUsers] = useState(247);
   const [formStep, setFormStep] = useState(1);
   const [email, setEmail] = useState('');
   const [typedText, setTypedText] = useState('');
@@ -158,15 +158,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
       const progress = step / steps;
 
       setStats({
-        users: Math.floor(10000 * progress),
-        videos: Math.floor(50000 * progress),
-        response: Math.floor(300 * progress),
+        users: Math.floor(247 * progress),
+        videos: Math.floor(1850 * progress),
+        response: Math.floor(287 * progress),
         time: Math.floor(92 * progress),
       });
 
       if (step >= steps) {
         clearInterval(timer);
-        setStats({ users: 10000, videos: 50000, response: 300, time: 92 });
+        setStats({ users: 247, videos: 1850, response: 287, time: 92 });
       }
     }, interval);
   };
@@ -583,7 +583,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold mb-4 animate-fadeInUp">Real Results From Real Users</h2>
-              <p className="text-xl text-gray-400 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>Join thousands of professionals closing more deals</p>
+              <p className="text-xl text-gray-400 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>Join hundreds of early adopters closing more deals</p>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
               <StatCard number={stats.users.toLocaleString()} suffix="+" label="Active Users" sublabel="Growing daily" color="blue" delay={0} />
