@@ -5,8 +5,6 @@ import {
     RecordIcon, StopIcon, TrashIcon, SparklesIcon, DropletIcon, ImageIcon, ScrollIcon,
     FaceSmileIcon, HandIcon, CaptionsIcon, PartyHatIcon, SmoothIcon
 } from './icons';
-import { applyNoiseCancellation, isNoiseCancellationSupported, cleanupNoiseCancellation } from '../services/noiseCancellation';
-import { applyBackgroundEffect, loadBackgroundRemovalModel } from '../services/backgroundRemoval';
 
 declare const window: any;
 
@@ -25,12 +23,11 @@ interface VideoRecorderProps {
     setTakes: React.Dispatch<React.SetStateAction<Take[]>>;
     onSelectTake: (take: Take) => void;
     onEditTake: (take: Take) => void;
-    onCreateCampaign?: (take: Take) => void;
     selectedTakeId?: string;
     onError: (message: string) => void; // New prop for error handling
 }
 
-export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, setTakes, onSelectTake, onEditTake, onCreateCampaign, selectedTakeId, onError }) => {
+export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, setTakes, onSelectTake, onEditTake, selectedTakeId, onError }) => {
     const { mediaPipeEffects, getGoogleGenAIInstance } = useAppLibs();
     const [isRecording, setIsRecording] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
@@ -44,33 +41,21 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     const [isEffectsPanelOpen, setIsEffectsPanelOpen] = useState(false);
     const [isArPanelOpen, setIsArPanelOpen] = useState(false);
     
-    const [backgroundEffect, setBackgroundEffect] = useState<'none' | 'blur' | 'image' | 'remove'>('none');
+    const [backgroundEffect, setBackgroundEffect] = useState<'none' | 'blur' | 'image'>('none');
     const [virtualBgImage, setVirtualBgImage] = useState<HTMLImageElement | null>(null);
     const [arEffect, setArEffect] = useState<'none' | 'glasses' | 'hat' | 'nose' | 'smoothing'>('none');
     const [isGestureControlEnabled, setIsGestureControlEnabled] = useState(false);
     const [isCaptionsEnabled, setIsCaptionsEnabled] = useState(false);
     const [liveCaption, setLiveCaption] = useState('');
-    const [isNoiseCancelEnabled, setIsNoiseCancelEnabled] = useState(false);
-    const [noiseCancelSupported, setNoiseCancelSupported] = useState(false);
 
     const [isTeleprompterVisible, setIsTeleprompterVisible] = useState(false);
     const [teleprompterSpeed, setTeleprompterSpeed] = useState(1);
     const [teleprompterFontSize, setTeleprompterFontSize] = useState(24);
-    const [teleprompterFont, setTeleprompterFont] = useState('Arial');
-    const [teleprompterTextColor, setTeleprompterTextColor] = useState('#FFFFFF');
+    const [teleprompterFont, setTeleprompterFont] = useState('Arial'); // Default font
+    const [teleprompterTextColor, setTeleprompterTextColor] = useState('#FFFFFF'); // Default text color
     const [teleprompterBgColor, setTeleprompterBgColor] = useState('rgba(0, 0, 0, 0.5)');
-    const [teleprompterLineHeight, setTeleprompterLineHeight] = useState(1.2);
-    const [teleprompterTextAlign, setTeleprompterTextAlign] = useState<'left' | 'center' | 'right'>('center');
-
-    const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
-    const [availableMicrophones, setAvailableMicrophones] = useState<MediaDeviceInfo[]>([]);
-    const [selectedCameraId, setSelectedCameraId] = useState<string>('');
-    const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string>('');
-    const [showDeviceSettings, setShowDeviceSettings] = useState(false);
-    const [isInitializingDevices, setIsInitializingDevices] = useState(false);
-    const [audioLevel, setAudioLevel] = useState(0);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
+    const [teleprompterLineHeight, setTeleprompterLineHeight] = useState(1.2); // Default line height multiplier
+    const [teleprompterTextAlign, setTeleprompterTextAlign] = useState<'left' | 'center' | 'right'>('center'); // Default alignment
 
     const [isAiPacing, setIsAiPacing] = useState(false);
     const [highlightedKeywords, setHighlightedKeywords] = useState<string[]>([]);
@@ -92,16 +77,11 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     }, [takes]);
 
     useEffect(() => {
-        setNoiseCancelSupported(isNoiseCancellationSupported());
-    }, []);
-
-    useEffect(() => {
         return () => {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
             stream?.getTracks().forEach(track => track.stop());
-            cleanupNoiseCancellation();
         };
     }, [stream]);
     
@@ -186,7 +166,7 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     }, [isRecording, startRecording, stopRecording]);
 
     const processFrame = useCallback(async () => {
-        if (isProcessingFrameRef.current || !videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended) {
+        if (isProcessingFrameRef.current || !videoRef.current || !canvasRef.current || videoRef.current.paused || videoRef.current.ended || !mediaPipeEffects) {
             animationFrameRef.current = requestAnimationFrame(processFrame);
             return;
         }
@@ -362,42 +342,25 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
             }
         };
 
-        const drawBaseLayer = new Promise<void>(async (resolve) => {
-            if (backgroundEffect !== 'none') {
-                if (backgroundEffect === 'remove') {
-                    try {
-                        await applyBackgroundEffect(video, canvas, 'remove', virtualBgImage || undefined);
-                    } catch (error) {
-                        console.error('Background removal error:', error);
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    }
-                    resolve();
-                    return;
-                }
-
-                if (mediaPipeEffects?.segmenter) {
-                    mediaPipeEffects.segmenter.segmentForVideo(video, startTimeMs, (result: any) => {
-                        ctx.save();
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        if (backgroundEffect === 'blur') {
-                            ctx.filter = 'blur(10px)';
-                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                            ctx.filter = 'none';
-                        } else if (backgroundEffect === 'image' && virtualBgImage) {
-                            ctx.drawImage(virtualBgImage, 0, 0, canvas.width, canvas.height);
-                        }
-                        ctx.globalCompositeOperation = 'destination-out';
-                        ctx.drawImage(result.categoryMask, 0, 0, canvas.width, canvas.height);
-                        ctx.globalCompositeOperation = 'source-over';
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        ctx.restore();
-                        resolve();
-                    });
-                } else {
+        const drawBaseLayer = new Promise<void>((resolve) => {
+            if (backgroundEffect !== 'none' && mediaPipeEffects.segmenter) {
+                mediaPipeEffects.segmenter.segmentForVideo(video, startTimeMs, (result: any) => {
+                    ctx.save();
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if (backgroundEffect === 'blur') {
+                        ctx.filter = 'blur(10px)';
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        ctx.filter = 'none';
+                    } else if (backgroundEffect === 'image' && virtualBgImage) {
+                        ctx.drawImage(virtualBgImage, 0, 0, canvas.width, canvas.height);
+                    }
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.drawImage(result.categoryMask, 0, 0, canvas.width, canvas.height);
+                    ctx.globalCompositeOperation = 'source-over';
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    ctx.restore();
                     resolve();
-                }
+                });
             } else {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -407,13 +370,13 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
 
         await drawBaseLayer;
 
-        if (arEffect !== 'none' && mediaPipeEffects?.faceMesh) {
+        if (arEffect !== 'none' && mediaPipeEffects.faceMesh) {
             const result = mediaPipeEffects.faceMesh.detectForVideo(video, startTimeMs);
             if (result.faceLandmarks && result.faceLandmarks[0]) {
                 drawArEffects(ctx, result.faceLandmarks[0]);
             }
         }
-        if (isGestureControlEnabled && mediaPipeEffects?.handLandmarker) {
+        if (isGestureControlEnabled && mediaPipeEffects.handLandmarker) {
             const result = mediaPipeEffects.handLandmarker.detectForVideo(video, startTimeMs);
             if (result.landmarks && result.landmarks.length > 0) {
                 detectGesture(result.landmarks[0]);
@@ -436,176 +399,28 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
         teleprompterLineHeight, teleprompterTextAlign // Added new teleprompter states
     ]);
 
-    const enumerateDevices = async () => {
+    const startCamera = async () => {
         try {
-            await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const cameras = devices.filter(d => d.kind === 'videoinput');
-            const microphones = devices.filter(d => d.kind === 'audioinput');
-
-            setAvailableCameras(cameras);
-            setAvailableMicrophones(microphones);
-
-            const savedCameraId = localStorage.getItem('selectedCameraId');
-            const savedMicrophoneId = localStorage.getItem('selectedMicrophoneId');
-
-            if (savedCameraId && cameras.some(c => c.deviceId === savedCameraId)) {
-                setSelectedCameraId(savedCameraId);
-            } else if (cameras.length > 0) {
-                setSelectedCameraId(cameras[0].deviceId);
-            }
-
-            if (savedMicrophoneId && microphones.some(m => m.deviceId === savedMicrophoneId)) {
-                setSelectedMicrophoneId(savedMicrophoneId);
-            } else if (microphones.length > 0) {
-                setSelectedMicrophoneId(microphones[0].deviceId);
-            }
-        } catch (err: any) {
-            console.error("Error enumerating devices:", err);
-            onError("Failed to access media devices. Please grant camera and microphone permissions.");
-        }
-    };
-
-    const setupAudioLevelMonitoring = (mediaStream: MediaStream) => {
-        try {
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const analyser = audioContext.createAnalyser();
-            const source = audioContext.createMediaStreamSource(mediaStream);
-
-            analyser.fftSize = 256;
-            source.connect(analyser);
-
-            audioContextRef.current = audioContext;
-            analyserRef.current = analyser;
-
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
-            const updateAudioLevel = () => {
-                if (!analyserRef.current) return;
-                analyserRef.current.getByteFrequencyData(dataArray);
-                const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                setAudioLevel(Math.min(100, (average / 255) * 200));
-                requestAnimationFrame(updateAudioLevel);
-            };
-
-            updateAudioLevel();
-        } catch (err) {
-            console.error("Error setting up audio monitoring:", err);
-        }
-    };
-
-    const startCamera = async (cameraId?: string, microphoneId?: string) => {
-        setIsInitializingDevices(true);
-        try {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
-
-            const constraints: MediaStreamConstraints = {
-                video: cameraId ? { deviceId: { exact: cameraId }, width: 1280, height: 720 } : { width: 1280, height: 720 },
-                audio: microphoneId ? { deviceId: { exact: microphoneId } } : true
-            };
-
-            let mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-            if (isNoiseCancelEnabled && noiseCancelSupported) {
-                try {
-                    mediaStream = await applyNoiseCancellation(mediaStream);
-                } catch (error) {
-                    console.error('Failed to apply noise cancellation:', error);
-                }
-            }
-
+            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true });
             setStream(mediaStream);
-            setupAudioLevelMonitoring(mediaStream);
-
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
                 videoRef.current.onloadedmetadata = () => {
                     if (videoRef.current) {
-                        videoRef.current.play();
-                        if(canvasRef.current) {
+                         videoRef.current.play();
+                         if(canvasRef.current) {
                             canvasRef.current.width = videoRef.current.videoWidth;
                             canvasRef.current.height = videoRef.current.videoHeight;
-
-                            if (script && isTeleprompterVisible) {
-                                setTimeout(() => {
-                                    precomputeTeleprompterLines();
-                                }, 100);
-                            }
-                        }
-                        animationFrameRef.current = requestAnimationFrame(processFrame);
+                         }
+                         animationFrameRef.current = requestAnimationFrame(processFrame);
                     }
                 };
             }
         } catch (err: any) {
             console.error("Error accessing camera:", err);
-            let errorMessage = "Failed to access camera. ";
-
-            if (err.name === 'NotAllowedError') {
-                errorMessage += "Please grant camera and microphone permissions.";
-            } else if (err.name === 'NotFoundError') {
-                errorMessage += "No camera or microphone found.";
-            } else if (err.name === 'NotReadableError') {
-                errorMessage += "Camera or microphone is already in use by another application.";
-            } else if (err.name === 'OverconstrainedError') {
-                errorMessage += "The selected device doesn't meet the requirements.";
-                const failedCameraId = localStorage.getItem('selectedCameraId');
-                const failedMicId = localStorage.getItem('selectedMicrophoneId');
-                if (failedCameraId || failedMicId) {
-                    localStorage.removeItem('selectedCameraId');
-                    localStorage.removeItem('selectedMicrophoneId');
-                    errorMessage += " Trying default devices...";
-                    setTimeout(() => startCamera(), 1000);
-                    return;
-                }
-            } else {
-                errorMessage += err.message || "Unknown error occurred.";
-            }
-
-            onError(errorMessage);
-        } finally {
-            setIsInitializingDevices(false);
+            // Provide user feedback on camera access failure
+            onError("Failed to access camera. Please ensure camera permissions are granted and no other application is using it.");
         }
-    };
-
-    const precomputeTeleprompterLines = () => {
-        if (!canvasRef.current || !script) {
-            precomputedLinesRef.current = [];
-            return;
-        }
-        const ctx = canvasRef.current.getContext('2d');
-        if (!ctx) return;
-
-        ctx.font = `${teleprompterFontSize}px ${teleprompterFont}`;
-        const maxWidth = ctx.canvas.width - 140;
-        const words = script.split(' ');
-        const lines: string[] = [];
-        let currentLine = '';
-
-        for (const word of words) {
-            const testLine = currentLine + word + ' ';
-            if (ctx.measureText(testLine).width > maxWidth && currentLine !== '') {
-                lines.push(currentLine.trim());
-                currentLine = word + ' ';
-            } else {
-                currentLine = testLine;
-            }
-        }
-        lines.push(currentLine.trim());
-        precomputedLinesRef.current = lines;
-    };
-
-    const handleCameraChange = async (deviceId: string) => {
-        setSelectedCameraId(deviceId);
-        localStorage.setItem('selectedCameraId', deviceId);
-        await startCamera(deviceId, selectedMicrophoneId);
-    };
-
-    const handleMicrophoneChange = async (deviceId: string) => {
-        setSelectedMicrophoneId(deviceId);
-        localStorage.setItem('selectedMicrophoneId', deviceId);
-        await startCamera(selectedCameraId, deviceId);
     };
     
     const handleBgImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -624,25 +439,34 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
     };
 
     useEffect(() => {
-        precomputeTeleprompterLines();
-    }, [script, teleprompterFontSize, teleprompterFont, teleprompterLineHeight, teleprompterTextAlign]);
+        if (!canvasRef.current || !script) {
+            precomputedLinesRef.current = []; return;
+        }
+        const ctx = canvasRef.current.getContext('2d');
+        if (!ctx) return;
+        
+        // Ensure font is set correctly for accurate text measurement
+        ctx.font = `${teleprompterFontSize}px ${teleprompterFont}`;
+        const maxWidth = ctx.canvas.width - 140; // Reduced width for padding/margins
+        const words = script.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
 
-    useEffect(() => {
-        enumerateDevices();
-
-        const handleDeviceChange = () => {
-            enumerateDevices();
-        };
-
-        navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
-
-        return () => {
-            navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
-            if (audioContextRef.current) {
-                audioContextRef.current.close();
+        for (const word of words) {
+            const testLine = currentLine + word + ' ';
+            // If the test line is too wide, or if it's the first word and it's too wide
+            // (in which case, the word itself might be longer than maxWidth, but we push it anyway)
+            if (ctx.measureText(testLine).width > maxWidth && currentLine !== '') {
+                lines.push(currentLine.trim());
+                currentLine = word + ' ';
+            } else {
+                currentLine = testLine;
             }
-        };
-    }, []);
+        }
+        lines.push(currentLine.trim()); // Push the last line
+        precomputedLinesRef.current = lines;
+
+    }, [script, teleprompterFontSize, teleprompterFont, teleprompterLineHeight, teleprompterTextAlign]); // Added all relevant teleprompter style properties to dependencies
 
     useEffect(() => {
         if (!hasSpeechRecognition) return; // Only initialize if supported
@@ -747,124 +571,29 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
                     ></div>
                 )}
                  {!stream && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-gray-900/80">
-                        {isInitializingDevices ? (
-                            <div className="flex flex-col items-center gap-3">
-                                <div className="w-12 h-12 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
-                                <p className="text-sm text-gray-300">Initializing devices...</p>
-                            </div>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={() => startCamera(selectedCameraId, selectedMicrophoneId)}
-                                    className="px-6 py-3 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
-                                    aria-label="Start Camera"
-                                >
-                                    Start Camera
-                                </button>
-                                <button
-                                    onClick={() => setShowDeviceSettings(!showDeviceSettings)}
-                                    className="px-4 py-2 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-600"
-                                >
-                                    Device Settings
-                                </button>
-                            </>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {showDeviceSettings && (
-                <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h4 className="font-semibold text-white">Device Settings</h4>
-                        <button
-                            onClick={() => setShowDeviceSettings(false)}
-                            className="text-gray-400 hover:text-white text-xl"
-                        >
-                            ×
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <button onClick={startCamera} className="px-6 py-3 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-600" aria-label="Start Camera">
+                           Start Camera
                         </button>
                     </div>
-
-                    <div className="space-y-3">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">
-                                Camera
-                            </label>
-                            <select
-                                value={selectedCameraId}
-                                onChange={(e) => stream ? handleCameraChange(e.target.value) : setSelectedCameraId(e.target.value)}
-                                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-yellow-500"
-                            >
-                                {availableCameras.map((camera) => (
-                                    <option key={camera.deviceId} value={camera.deviceId}>
-                                        {camera.label || `Camera ${availableCameras.indexOf(camera) + 1}`}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-2">
-                                Microphone
-                            </label>
-                            <select
-                                value={selectedMicrophoneId}
-                                onChange={(e) => stream ? handleMicrophoneChange(e.target.value) : setSelectedMicrophoneId(e.target.value)}
-                                className="w-full bg-gray-800 border border-gray-600 rounded-lg p-2 text-white focus:ring-2 focus:ring-yellow-500"
-                            >
-                                {availableMicrophones.map((mic) => (
-                                    <option key={mic.deviceId} value={mic.deviceId}>
-                                        {mic.label || `Microphone ${availableMicrophones.indexOf(mic) + 1}`}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {stream && (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    Microphone Level
-                                </label>
-                                <div className="w-full bg-gray-800 rounded-full h-6 overflow-hidden border border-gray-600">
-                                    <div
-                                        className="bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 h-full transition-all duration-100"
-                                        style={{ width: `${audioLevel}%` }}
-                                    ></div>
-                                </div>
-                            </div>
-                        )}
+                )}
+                 {!mediaPipeEffects && stream && (
+                     <div className="absolute inset-0 flex items-center justify-center bg-black/50" role="status" aria-live="polite">
+                        <p className="text-white">Initializing AI Engine...</p>
                     </div>
-                </div>
-            )}
-
+                 )}
+            </div>
+            
             {stream && <div className="space-y-4">
-                <div className="flex gap-2 items-center">
-                    <button
-                        onClick={() => setShowDeviceSettings(!showDeviceSettings)}
-                        className="px-3 py-2 bg-gray-700 text-white text-sm rounded-lg hover:bg-gray-600"
-                        title="Change camera or microphone"
-                    >
-                        Devices
-                    </button>
-                    {audioLevel > 0 && (
-                        <div className="flex-1 bg-gray-800 rounded-full h-2 overflow-hidden">
-                            <div
-                                className="bg-yellow-400 h-full transition-all duration-100"
-                                style={{ width: `${Math.min(audioLevel, 100)}%` }}
-                            ></div>
-                        </div>
-                    )}
-                </div>
-
                  <div className="flex justify-center">
                     <button
                         onClick={isRecording ? stopRecording : startRecording}
+                        disabled={!mediaPipeEffects}
                         className={`flex items-center justify-center w-20 h-20 rounded-full transition-all duration-300 ${
                         isRecording
                             ? 'bg-red-600 text-white shadow-red-500/50'
                             : 'bg-white text-red-600 shadow-white/50'
-                        } shadow-lg transform hover:scale-110`}
+                        } shadow-lg transform hover:scale-110 disabled:opacity-50 disabled:scale-100`}
                         aria-label={isRecording ? 'Stop Recording' : 'Start Recording'}
                         role="button"
                     >
@@ -890,24 +619,12 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
                  {isEffectsPanelOpen && (
                      <div id="effects-panel" className="bg-gray-900/50 p-3 rounded-lg space-y-2" role="region" aria-label="Background effects panel">
                         <h4 className="font-semibold text-center">Background Effects</h4>
-                        <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-labelledby="background-effects-heading">
-                            <button id="background-effects-heading" onClick={() => setBackgroundEffect('none')} className={`p-2 rounded text-sm ${backgroundEffect === 'none' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'none'} role="radio">None</button>
-                            <button onClick={() => setBackgroundEffect('blur')} className={`p-2 rounded text-sm ${backgroundEffect === 'blur' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'blur'} role="radio">Blur</button>
-                            <button onClick={async () => { await loadBackgroundRemovalModel(); setBackgroundEffect('remove'); }} className={`p-2 rounded text-sm ${backgroundEffect === 'remove' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'remove'} role="radio">Remove</button>
-                             <label className={`p-2 rounded text-sm text-center cursor-pointer ${backgroundEffect === 'image' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-label="Upload background image">
+                        <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-labelledby="background-effects-heading">
+                            <button id="background-effects-heading" onClick={() => setBackgroundEffect('none')} className={`p-2 rounded ${backgroundEffect === 'none' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'none'} role="radio">None</button>
+                            <button onClick={() => setBackgroundEffect('blur')} className={`p-2 rounded ${backgroundEffect === 'blur' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-pressed={backgroundEffect === 'blur'} role="radio">Blur</button>
+                             <label className={`p-2 rounded text-center cursor-pointer ${backgroundEffect === 'image' ? 'bg-yellow-500 text-black' : 'bg-gray-700'}`} aria-label="Upload background image">
                                 Image <input type="file" accept="image/*" onChange={handleBgImageUpload} className="hidden" />
                              </label>
-                        </div>
-                        <div className="mt-2">
-                            <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={isNoiseCancelEnabled}
-                                    onChange={(e) => setIsNoiseCancelEnabled(e.target.checked)}
-                                    className="rounded"
-                                />
-                                <span>Noise Cancellation {!noiseCancelSupported && '(Not Supported)'}</span>
-                            </label>
                         </div>
                      </div>
                  )}
@@ -1011,16 +728,6 @@ export const VideoRecorder: React.FC<VideoRecorderProps> = ({ script, takes, set
                                     <div className="flex flex-col gap-2">
                                         <button onClick={() => onSelectTake(take)} disabled={take.status !== 'complete'} className="px-3 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50" aria-label={`Use Take ${takes.findIndex(t => t.id === take.id) + 1}`}>Use</button>
                                         <button onClick={() => onEditTake(take)} disabled={take.status !== 'complete'} className="px-3 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600 disabled:opacity-50" aria-label={`Edit Take ${takes.findIndex(t => t.id === take.id) + 1}`}>Edit</button>
-                                        {onCreateCampaign && (
-                                            <button
-                                                onClick={() => onCreateCampaign(take)}
-                                                disabled={take.status !== 'complete'}
-                                                className="px-3 py-1 text-xs bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 font-medium"
-                                                aria-label={`Create Campaign with Take ${takes.findIndex(t => t.id === take.id) + 1}`}
-                                            >
-                                                🚀 Campaign
-                                            </button>
-                                        )}
                                         <button onClick={() => handleDeleteTake(take.id)} className="text-gray-400 hover:text-red-400" aria-label={`Delete Take ${takes.findIndex(t => t.id === take.id) + 1}`}><TrashIcon className="w-4 h-4 mx-auto"/></button>
                                     </div>
                                 </div>
